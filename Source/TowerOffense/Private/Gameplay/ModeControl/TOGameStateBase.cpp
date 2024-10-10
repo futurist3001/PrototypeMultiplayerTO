@@ -14,6 +14,11 @@ void ATOGameStateBase::SetGamePhase(EGamePhase NewPhase)
 	if (HasAuthority())
 	{
 		GamePhase = NewPhase;
+
+		if (ATOGameModeBase* GameMode = GetWorld()->GetAuthGameMode<ATOGameModeBase>())
+		{
+			GameMode->GameStarted();
+		}
 	}
 }
 
@@ -35,18 +40,7 @@ void ATOGameStateBase::SetNumberTanks(int32 Tanks)
 
 void ATOGameStateBase::OnRep_GamePhase()
 {
-	Server_DoWhenPlay();
-}
-
-void ATOGameStateBase::Server_DoWhenPlay_Implementation()
-{
-	if (HasAuthority())
-	{
-		if (ATOGameModeBase* GameMode = GetWorld()->GetAuthGameMode<ATOGameModeBase>())
-		{
-			GameMode->GameStarted();
-		}
-	}
+	// client side; execute some code when GamePhase is replicated
 }
 
 void ATOGameStateBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

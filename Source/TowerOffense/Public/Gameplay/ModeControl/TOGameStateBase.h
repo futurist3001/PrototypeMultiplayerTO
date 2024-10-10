@@ -58,9 +58,6 @@ public:
 	UFUNCTION()
 	void OnRep_GamePhase();
 
-	UFUNCTION(Server, reliable)
-	void Server_DoWhenPlay();
-
 protected:
 
 };

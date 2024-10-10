@@ -34,14 +34,11 @@ void ATOGameModeBase::BeginPlay()
 		TOGameState->SetGamePhase(EGamePhase::Preparation);
 	}
 
-	InitPlayData();
-
-	TOGameState->SetNumberTowers(NumberTowers);
-	TOGameState->SetNumberTanks(NumberTanks);
+	FTimerHandle PostponeInitilezeTimer;
+	GetWorldTimerManager().SetTimer(
+		PostponeInitilezeTimer, this, &ThisClass::PostponeInitilize, 1.3f, false);
 
 	ULevelSystem* LevelSystem = GEngine->GetEngineSubsystem<ULevelSystem>();
-
-	//GetWorldTimerManager().SetTimer(StartGameTimer, this, &ATOGameModeBase::GameStarted, 3.05f, true);
 
 	UKismetSystemLibrary::PrintString(this, FString::Printf(
 			TEXT("Current Level: %d"), LevelSystem->ActualCurrentLevel),
@@ -64,6 +61,17 @@ void ATOGameModeBase::InitPlayData()
 	INIT_PLAY_DATA(ATowerPawn::StaticClass(), NumberTowers, &ATOGameModeBase::TowerDestroyed);
 	INIT_PLAY_DATA(ATankPawn::StaticClass(), NumberTanks, &ATOGameModeBase::TankDestroyed);
 #undef INIT_PLAY_DATA
+}
+
+void ATOGameModeBase::PostponeInitilize()
+{
+	if (ATOGameStateBase* TOGameState = GetGameState<ATOGameStateBase>())
+	{
+		InitPlayData();
+
+		TOGameState->SetNumberTowers(NumberTowers);
+		TOGameState->SetNumberTanks(NumberTanks);
+	}
 }
 
 void ATOGameModeBase::GameStarted()

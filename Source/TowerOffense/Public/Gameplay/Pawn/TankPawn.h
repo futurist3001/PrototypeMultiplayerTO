@@ -150,7 +150,20 @@ protected:
 
 	void MoveStarted();
 	void MoveTriggeredValue(const FInputActionValue& Value);
+
 	void MoveTriggeredInstance(const FInputActionInstance& Instance);
+
+	UFUNCTION(Server, unreliable)
+	void Server_SetActorLocation(FVector ActorLocation);
+
+	UFUNCTION(Server, reliable)
+	void Server_SetActorRotation(FRotator ActorRotation);
+
+	UFUNCTION(Server, unreliable)
+	void Server_SetTurretRotation(
+		UStaticMeshComponent* ServerTurret, FRotator ServerTargetAngle,
+		float ServerRotationCurrentTime, float ServerTurretRotationSpeed);
+
 	void MoveCompleted();
 	void StopCollision();
 

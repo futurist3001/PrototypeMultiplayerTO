@@ -44,6 +44,9 @@ protected:
 	bool IsLookToTank();
 	bool IsTheSameTeam(AActor* Actor);
 
+	UFUNCTION(Server, unreliable)
+	void Server_SetTurretRotation(UStaticMeshComponent* Turret, FRotator TurretRotation);
+
 private:
 	UFUNCTION()
 	void OnBeginOverlap(

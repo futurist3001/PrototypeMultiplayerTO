@@ -41,6 +41,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	void InitPlayData();
+	void PostponeInitilize();
 
 	void Win();
 	void Lose();

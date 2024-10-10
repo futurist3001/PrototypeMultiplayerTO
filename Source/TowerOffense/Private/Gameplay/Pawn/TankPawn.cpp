@@ -113,6 +113,27 @@ void ATankPawn::MoveTriggeredInstance(const FInputActionInstance& Instance)
 	}
 }
 
+void ATankPawn::Server_SetActorRotation_Implementation(FRotator ActorRotation)
+{
+	SetActorRotation(ActorRotation);
+}
+
+void ATankPawn::Server_SetActorLocation_Implementation(FVector ActorLocation)
+{
+	SetActorLocation(ActorLocation);
+}
+
+void ATankPawn::Server_SetTurretRotation_Implementation(
+	UStaticMeshComponent* ServerTurret, FRotator ServerTargetAngle,
+	float ServerRotationCurrentTime, float ServerTurretRotationSpeed)
+{
+	//Turret->SetWorldRotation(TurretRotation);
+
+	TurretMesh->SetRelativeRotation(FMath::RInterpTo(
+			TurretMesh->GetRelativeRotation(), ServerTargetAngle,
+			ServerRotationCurrentTime, ServerTurretRotationSpeed));
+}
+
 void ATankPawn::MoveCompleted()
 {
 	bIsStopMoving = true;
@@ -152,6 +173,8 @@ void ATankPawn::Turn(const FInputActionValue& Value)
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
 			GetWorld(), MovementEffect, LeftTankTrackRotation->GetComponentLocation());
 	}
+
+	Server_SetActorRotation(GetActorRotation());
 }
 
 void ATankPawn::Fire()
@@ -292,9 +315,6 @@ void ATankPawn::UpsideDownTank()
 {
 	if (TankTop->GetComponentLocation().Z < TankBottom->GetComponentLocation().Z && !bIsUpsideDown)
 	{
-		/*ATOGameModeBase* GameModeBase = GetWorld()->GetAuthGameMode<ATOGameModeBase>();
-		GetWorldTimerManager().SetTimer(
-			ReloadLevelTimerHandle, GameModeBase, &ATOGameModeBase::Restart, 3.0f, false);*/
 		ATOPlayerController* PlayerController = GetWorld()->GetFirstPlayerController<ATOPlayerController>();
 		GetWorldTimerManager().SetTimer(
 			ReloadLevelTimerHandle, PlayerController, &ATOPlayerController::Restart, 3.0f, false);
@@ -341,7 +361,7 @@ void ATankPawn::Tick(float DeltaTime)
 	{
 		// Play Sound
 
-		if (TurretRotationSound)
+		if (TurretRotationSound && !HasAuthority())
 		{
 			TurretRotationAudioComponent = UGameplayStatics::CreateSound2D(GetWorld(), TurretRotationSound);
 			TurretRotationAudioComponent->Play();
@@ -395,6 +415,10 @@ void ATankPawn::Tick(float DeltaTime)
 		CurrentEnergy += 10.f;
 		RechargeTimeProjectile = 0.0f;
 	}
+
+	Server_SetActorLocation(GetActorLocation());
+	Server_SetTurretRotation(TurretMesh, TargetAngle, RotationCurrentTime, TurretRotationSpeed);
+
 }
 
 void ATankPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

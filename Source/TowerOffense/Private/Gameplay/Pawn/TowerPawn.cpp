@@ -64,6 +64,8 @@ void ATowerPawn::Tick(float DeltaTime)
 			bPlayedTurretRotationSoundIteration = false;
 		}
 	}
+
+	Server_SetTurretRotation(TurretMesh, TurretMesh->GetComponentRotation());
 }
 
 void ATowerPawn::RotateTurret()
@@ -124,6 +126,11 @@ bool ATowerPawn::IsTheSameTeam(AActor* Actor)
 	}
 
 	return false;
+}
+
+void ATowerPawn::Server_SetTurretRotation_Implementation(UStaticMeshComponent* Turret, FRotator TurretRotation)
+{
+	Turret->SetWorldRotation(TurretRotation);
 }
 
 void ATowerPawn::OnBeginOverlap(
