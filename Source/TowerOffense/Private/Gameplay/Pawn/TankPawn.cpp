@@ -61,6 +61,9 @@ ATankPawn::ATankPawn(const FObjectInitializer& ObjectInitializer)
 	bIsUpsideDown = false;
 
 	MovementEffect = nullptr;
+
+	bReplicates = true;
+	SetReplicateMovement(true);
 }
 
 void ATankPawn::MoveStarted()
@@ -289,9 +292,12 @@ void ATankPawn::UpsideDownTank()
 {
 	if (TankTop->GetComponentLocation().Z < TankBottom->GetComponentLocation().Z && !bIsUpsideDown)
 	{
-		ATOGameModeBase* GameModeBase = GetWorld()->GetAuthGameMode<ATOGameModeBase>();
+		/*ATOGameModeBase* GameModeBase = GetWorld()->GetAuthGameMode<ATOGameModeBase>();
 		GetWorldTimerManager().SetTimer(
-			ReloadLevelTimerHandle, GameModeBase, &ATOGameModeBase::Restart, 3.0f, false);
+			ReloadLevelTimerHandle, GameModeBase, &ATOGameModeBase::Restart, 3.0f, false);*/
+		ATOPlayerController* PlayerController = GetWorld()->GetFirstPlayerController<ATOPlayerController>();
+		GetWorldTimerManager().SetTimer(
+			ReloadLevelTimerHandle, PlayerController, &ATOPlayerController::Restart, 3.0f, false);
 
 		bIsUpsideDown = true;
 	}

@@ -2,7 +2,7 @@
 
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
-#include "TowerOffense/Public/Gameplay/ModeControl/TOGameModeBase.h"
+#include "TowerOffense/Public/Gameplay/ModeControl/TOPlayerController.h"
 
 void UTOWinLoseWidget::SetEndGameStateTextColor(EGamePhase EndGameState)
 {
@@ -20,8 +20,8 @@ void UTOWinLoseWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	ATOGameModeBase* GameMode = GetWorld()->GetAuthGameMode<ATOGameModeBase>();
+	ATOPlayerController* PlayerController = GetWorld()->GetFirstPlayerController<ATOPlayerController>();
 
-	RestartButton->OnClicked.AddDynamic(GameMode, &ATOGameModeBase::Restart);
-	QuitButton->OnClicked.AddDynamic(GameMode, &ATOGameModeBase::ReturnToMainMenu);
+	RestartButton->OnClicked.AddDynamic(PlayerController, &ATOPlayerController::Restart);
+	QuitButton->OnClicked.AddDynamic(PlayerController, &ATOPlayerController::ReturnToMainMenu);
 }

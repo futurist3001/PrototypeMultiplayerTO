@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "TOGameModeBase.h"
+#include "TowerOffense/Public/Gameplay/ModeControl/TOGameStateBase.h"
 
 #include "TOPlayerController.generated.h"
 
@@ -16,6 +16,9 @@ class TOWEROFFENSE_API ATOPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 	
+public:
+	float HandleTime; // For delay preparation
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UTOWinLoseWidget> WinLoseWidgetClass;
@@ -51,6 +54,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SwitchScopeVisibility();
 
+	UFUNCTION()
+	void Restart();
+
+	UFUNCTION()
+	void ReturnToMainMenu();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -68,6 +77,9 @@ protected:
 		AActor* HealthKeeper, UTOHealthComponent* ParameterHealthComponent);
 
 private:
+	UFUNCTION(Server, reliable)
+	void Server_ChangeGamePhase();
+
 	UFUNCTION()
 	void LimitPlayerMovement(EGamePhase EndGameState); // here parameter only for binding OnEndGame
 

@@ -34,6 +34,8 @@ ATurretPawn::ATurretPawn(const FObjectInitializer& ObjectInitializer)
 	Team = ETeam::Team1;
 	DeathEfect = nullptr;
 	FireEfect = nullptr;
+
+	bReplicates = true;
 }
 
 TArray<FName> ATurretPawn::GetBaseMeshMaterialSlotOptions() const
@@ -130,10 +132,13 @@ void ATurretPawn::Tick(float DeltaTime)
 
 	RotationCurrentTime = DeltaTime;
 
-	HealthWidgetComponent->SetWorldRotation(
-		UKismetMathLibrary::FindLookAtRotation(
-			HealthWidgetComponent->GetComponentLocation(), 
-			GetWorld()->GetFirstPlayerController()->PlayerCameraManager->GetCameraLocation()));
+	if (HealthWidgetComponent && !HasAuthority())
+	{
+		HealthWidgetComponent->SetWorldRotation(
+			UKismetMathLibrary::FindLookAtRotation(
+				HealthWidgetComponent->GetComponentLocation(),
+				GetWorld()->GetFirstPlayerController()->PlayerCameraManager->GetCameraLocation()));
+	}
 }
 
 // using OnConstruction(const FTransform &Transform) leads to unpredictable results

@@ -2,7 +2,7 @@
 
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
-#include "TowerOffense/Public/Gameplay/ModeControl/TOGameModeBase.h"
+#include "TowerOffense/Public/Gameplay/ModeControl/TOGameStateBase.h"
 
 void UTOHUDWidget::SetHealth(float CurrentHealth, float MaxHealth)
 {
@@ -44,12 +44,12 @@ void UTOHUDWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	if (auto* GameMode = GetWorld()->GetAuthGameMode<ATOGameModeBase>())
+	if (ATOGameStateBase* GameState = GetWorld()->GetGameState<ATOGameStateBase>())
 	{
-		GameMode->OnTowerDestroyed.AddDynamic(this, &UTOHUDWidget::SetEnemiesText);
-		GameMode->OnTankDestroyed.AddDynamic(this, &UTOHUDWidget::SetAlliesText);
+		GameState->OnTowerDestroyed.AddDynamic(this, &UTOHUDWidget::SetEnemiesText);
+		GameState->OnTankDestroyed.AddDynamic(this, &UTOHUDWidget::SetAlliesText);
 
-		SetEnemiesText(GameMode->GetNumberTowers());
-		SetAlliesText(GameMode->GetNumberTanks());
+		SetEnemiesText(GameState->NumberTowersState);
+		SetAlliesText(GameState->NumberTanksState);
 	}
 }

@@ -8,12 +8,34 @@
 #include "TowerOffense/Public/Gameplay/UI/TOPreparationWidget.h"
 #include "TowerOffense/Public/Gameplay/UI/TOScopeWidget.h"
 #include "TowerOffense/Public/Gameplay/UI/TOWinLoseWidget.h"
+#include "TowerOffense/Public/Generic/LevelSystem.h"
 
 void ATOPlayerController::SwitchScopeVisibility()
 {
 	const ESlateVisibility Visibility = ScopeWidget->GetVisibility() != ESlateVisibility::Visible
 		? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
 	ScopeWidget->SetVisibility(Visibility);
+}
+
+void ATOPlayerController::Restart()
+{
+	ULevelSystem* LevelSystem = GEngine->GetEngineSubsystem<ULevelSystem>();
+	LevelSystem->OpenRelativeLevel(GetWorld(), LevelSystem->ActualCurrentLevel);
+
+	UWidgetBlueprintLibrary::SetInputMode_GameOnly(GetWorld()->GetFirstPlayerController());
+
+	ATOGameStateBase* GameState = GetWorld()->GetGameState<ATOGameStateBase>();
+
+	if (GameState)
+	{
+		GameState->SetGamePhase(EGamePhase::Preparation);
+	}
+}
+
+void ATOPlayerController::ReturnToMainMenu()
+{
+	ATOGameStateBase* GameState = GetWorld()->GetGameState<ATOGameStateBase>();
+	UGameplayStatics::OpenLevel(GetWorld(), GameState->MainMenuMapName, true);
 }
 
 void ATOPlayerController::BeginPlay()
@@ -25,25 +47,36 @@ void ATOPlayerController::BeginPlay()
 		UGameplayStatics::PlaySound2D(GetWorld(), GameBackMusic);
 	}
 
-	CreateScopeWidget();
-	CreatePreparationWidget();
-	CreateHUDWidget();
+	if (IsLocalController())
+	{
+		CreateScopeWidget();
+		CreatePreparationWidget();
+		CreateHUDWidget();
 
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &ATOPlayerController::DestroyPreparationWidget, 4.f, false);
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &ATOPlayerController::DestroyPreparationWidget, 4.f, false);
+	}
 
-	ATOGameModeBase* GameMode = Cast<ATOGameModeBase>(GetWorld()->GetAuthGameMode());
-	GameMode->OnGamePhaseChanged.AddDynamic(this, &ThisClass::LimitPlayerMovement);
-	GameMode->OnGamePhaseChanged.AddDynamic(this, &ThisClass::CreateWinLoseWidget);
+	if (ATOGameStateBase* GameState = GetWorld()->GetGameState<ATOGameStateBase>())
+	{
+		GameState->OnGamePhaseChanged.AddDynamic(this, &ThisClass::LimitPlayerMovement);
+		GameState->OnGamePhaseChanged.AddDynamic(this, &ThisClass::CreateWinLoseWidget);
+	}
 
 	if (ATankPawn* TankPawn = GetPawn<ATankPawn>(); TankPawn && HUDWidget)
 	{
 		TankPawn->HealthComponent->HealthChanged.AddDynamic(this, &ATOPlayerController::UpdateHUDHealth);
 	}
+
+	FTimerHandle TimerChangePhase;
+	GetWorldTimerManager().SetTimer(
+		TimerChangePhase, this, &ATOPlayerController::Server_ChangeGamePhase, 3.10f, false);
 }
 
 void ATOPlayerController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	HandleTime += DeltaTime;
 
 	if (PreparationWidget)
 	{
@@ -76,9 +109,9 @@ void ATOPlayerController::DestroyPreparationWidget()
 {
 	if (PreparationWidget)
 	{
-		auto* GameMode = GetWorld()->GetAuthGameMode<ATOGameModeBase>();
+		ATOGameStateBase* GameState = GetWorld()->GetGameState<ATOGameStateBase>();
 
-		if (PreparationWidget && GameMode->GetGamePhase() == EGamePhase::Playing)
+		if (PreparationWidget && GameState->GetGamePhase() == EGamePhase::Playing)
 		{
 			UWidgetBlueprintLibrary::SetInputMode_GameOnly(this);
 
@@ -126,6 +159,19 @@ void ATOPlayerController::UpdateHUDHealth(AActor* HealthKeeper, UTOHealthCompone
 		if (HUDWidget->HealthBar->GetVisibility() != ESlateVisibility::Visible)
 		{
 			HUDWidget->HealthBar->SetVisibility(ESlateVisibility::Visible);
+		}
+	}
+}
+
+void ATOPlayerController::Server_ChangeGamePhase_Implementation()
+{
+	if (HandleTime > 3.f)
+	{
+		ATOGameStateBase* GameState = GetWorld()->GetGameState<ATOGameStateBase>();
+
+		if (GameState)
+		{
+			GameState->SetGamePhase(EGamePhase::Playing);
 		}
 	}
 }

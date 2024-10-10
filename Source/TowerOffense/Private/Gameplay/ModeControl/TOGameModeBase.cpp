@@ -17,75 +17,35 @@ ATOGameModeBase::ATOGameModeBase(const FObjectInitializer& ObjectInitializer)
 	NumberTanks = 0;
 }
 
-void ATOGameModeBase::Restart()
-{
-	ULevelSystem* LevelSystem = GEngine->GetEngineSubsystem<ULevelSystem>();
-	LevelSystem->OpenRelativeLevel(GetWorld(), LevelSystem->ActualCurrentLevel);
-
-	UWidgetBlueprintLibrary::SetInputMode_GameOnly(GetWorld()->GetFirstPlayerController());
-
-	GamePhase = EGamePhase::Playing;
-}
-
-void ATOGameModeBase::ReturnToMainMenu()
-{
-	UGameplayStatics::OpenLevel(GetWorld(), MainMenuMapName, true);
-}
-
 void ATOGameModeBase::OpenRelativeLevelCC(int32 LevelIndex) const
 {
 	ULevelSystem* LevelSystem = GEngine->GetEngineSubsystem<ULevelSystem>();
 	LevelSystem->OpenRelativeLevel(GetWorld(), LevelIndex);
 }
 
-FText ATOGameModeBase::GetPreparationText()
-{
-	if (HandleTime < 1.f)
-	{
-		return FText::FromString(TEXT("3"));
-	}
-
-	else if (HandleTime >= 1.f && HandleTime < 2.f)
-	{
-		return FText::FromString(TEXT("2"));
-	}
-
-	else if (HandleTime >= 2.f && HandleTime < 3.f)
-	{
-		return FText::FromString(TEXT("1"));
-	}
-
-	else if (HandleTime > 3.f)
-	{
-		GamePhase = EGamePhase::Playing;
-		GameStarted();
-
-		return FText::FromString(TEXT("Play!"));
-	}
-
-	return FText();
-}
-
 void ATOGameModeBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	GamePhase = EGamePhase::Preparation;
+	ATOGameStateBase* TOGameState = GetGameState<ATOGameStateBase>();
+
+	if (TOGameState)
+	{
+		TOGameState->SetGamePhase(EGamePhase::Preparation);
+	}
 
 	InitPlayData();
 
+	TOGameState->SetNumberTowers(NumberTowers);
+	TOGameState->SetNumberTanks(NumberTanks);
+
 	ULevelSystem* LevelSystem = GEngine->GetEngineSubsystem<ULevelSystem>();
+
+	//GetWorldTimerManager().SetTimer(StartGameTimer, this, &ATOGameModeBase::GameStarted, 3.05f, true);
 
 	UKismetSystemLibrary::PrintString(this, FString::Printf(
 			TEXT("Current Level: %d"), LevelSystem->ActualCurrentLevel),
 		true, false, FColor::Purple, 4.f);
-}
-
-void ATOGameModeBase::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-	HandleTime += DeltaTime;
 }
 
 void ATOGameModeBase::InitPlayData()
@@ -108,7 +68,9 @@ void ATOGameModeBase::InitPlayData()
 
 void ATOGameModeBase::GameStarted()
 {
-	if (GamePhase == EGamePhase::Playing)
+	ATOGameStateBase* TOGameState = GetGameState<ATOGameStateBase>();
+
+	if (TOGameState && TOGameState->GetGamePhase() == EGamePhase::Playing)
 	{
 		TArray<AActor*> Towers;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATowerPawn::StaticClass(), Towers);
@@ -157,28 +119,37 @@ void ATOGameModeBase::Lose()
 	SetEndGameState(EGamePhase::Lose);
 }
 
-void ATOGameModeBase::SetEndGameState(EGamePhase State)
+void ATOGameModeBase::SetEndGameState(EGamePhase Phase)
 {
-	GamePhase = State;
-	OnGamePhaseChanged.Broadcast(GamePhase);
+	ATOGameStateBase* TOGameState = GetGameState<ATOGameStateBase>();
+
+	if (GameState)
+	{
+		TOGameState->SetGamePhase(Phase);
+		TOGameState->OnGamePhaseChanged.Broadcast(Phase);
+	}
 }
 
 void ATOGameModeBase::TankDestroyed(AActor* DestroyedActor)
 {
-	if (--NumberTanks < 1 && GamePhase == EGamePhase::Playing)
+	ATOGameStateBase* TOGameState = GetGameState<ATOGameStateBase>();
+
+	if (--NumberTanks < 1 && TOGameState->GetGamePhase() == EGamePhase::Playing)
 	{
 		Lose();
 	}
 
-	OnTankDestroyed.Broadcast(NumberTanks);
+	TOGameState->OnTankDestroyed.Broadcast(NumberTanks);
 }
 
 void ATOGameModeBase::TowerDestroyed(AActor* DestroyedActor)
 {
- 	if (--NumberTowers < 1 && GamePhase == EGamePhase::Playing)
+	ATOGameStateBase* TOGameState = GetGameState<ATOGameStateBase>();
+
+ 	if (--NumberTowers < 1 && TOGameState->GetGamePhase() == EGamePhase::Playing)
 	{
  		Win();
 	}
 
-	OnTowerDestroyed.Broadcast(NumberTowers);
+	TOGameState->OnTowerDestroyed.Broadcast(NumberTowers);
 }

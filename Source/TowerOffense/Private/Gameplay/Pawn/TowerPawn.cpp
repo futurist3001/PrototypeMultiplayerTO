@@ -18,6 +18,8 @@ ATowerPawn::ATowerPawn(const FObjectInitializer& ObjectInitializer)
 
 	PeriodFire = 2.0f;
 	bIsPlaying = false;
+
+	bReplicates = true;
 }
 
 void ATowerPawn::BeginPlay()

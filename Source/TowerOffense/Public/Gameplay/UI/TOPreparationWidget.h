@@ -22,4 +22,5 @@ protected:
 
 public:
 	void SetPreparationText();
+	FText GetPreparationText();
 };
