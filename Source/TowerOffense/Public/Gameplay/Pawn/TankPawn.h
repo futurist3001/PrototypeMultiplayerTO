@@ -141,7 +141,8 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
-	virtual void RotateTurret() override;
+	virtual void RotateTurret(
+		const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed) override;
 	virtual void Fire() override;
 
 	virtual void NotifyHit(
@@ -156,13 +157,19 @@ protected:
 	UFUNCTION(Server, unreliable)
 	void Server_SetActorLocation(FVector ActorLocation);
 
-	UFUNCTION(Server, reliable)
-	void Server_SetActorRotation(FRotator ActorRotation);
+	UFUNCTION(Server, unreliable)
+	void Server_SetActorRotation(float ServerYawTurnRotator);
+
+	UFUNCTION(NetMulticast, unreliable)
+	void Multicast_SetActorRotation(float MultiYawTurnRotator);
 
 	UFUNCTION(Server, unreliable)
 	void Server_SetTurretRotation(
-		UStaticMeshComponent* ServerTurret, FRotator ServerTargetAngle,
-		float ServerRotationCurrentTime, float ServerTurretRotationSpeed);
+		const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed);
+
+	UFUNCTION(NetMulticast, unreliable)
+	void Multicast_SetTurretRotation(
+		const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed);
 
 	void MoveCompleted();
 	void StopCollision();

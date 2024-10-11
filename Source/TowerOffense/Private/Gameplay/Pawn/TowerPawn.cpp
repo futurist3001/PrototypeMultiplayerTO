@@ -36,7 +36,8 @@ void ATowerPawn::Tick(float DeltaTime)
 
 	if (!OverlapedActor.IsEmpty())
 	{
-		RotateTurret();
+		RotateTurret(
+			TurretMesh.Get()->GetRelativeRotation(), TargetAngle, RotationCurrentTime, TurretRotationSpeed);
 	}
 
 	if (!bPlayedTurretRotationSoundIteration && bIsRotate)
@@ -72,16 +73,19 @@ void ATowerPawn::Tick(float DeltaTime)
 	Server_SetTurretRotation(TurretMesh, TurretMesh->GetComponentRotation());
 }
 
-void ATowerPawn::RotateTurret()
+void ATowerPawn::RotateTurret(
+	const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed)
 {
 	if (!IsTheSameTeam(OverlapedActor[0]) && bIsPlaying)
 	{
-		Super::RotateTurret();
+		Super::RotateTurret(Current, Target, DeltaTime, InterpSpeed);
 
 		const FRotator NewRotator = UKismetMathLibrary::FindLookAtRotation(
 			GetActorLocation(), OverlapedActor[0]->GetActorLocation()) - GetActorRotation();
-
-		TargetAngle = FRotator(0.f, NewRotator.Yaw - 90.f, 0.f);
+		
+		///////////////////////////////////////////////////////////
+		TargetAngle = FRotator(0.f, NewRotator.Yaw - 90.f, 0.f); // not sure that it`s ok
+		//////////////////////////////////////////////////////////
 	}
 }
 

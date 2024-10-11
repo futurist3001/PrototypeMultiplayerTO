@@ -36,7 +36,7 @@ void ATOGameModeBase::BeginPlay()
 
 	FTimerHandle PostponeInitilezeTimer;
 	GetWorldTimerManager().SetTimer(
-		PostponeInitilezeTimer, this, &ThisClass::PostponeInitilize, 1.3f, false);
+		PostponeInitilezeTimer, this, &ThisClass::PostponeInitilize, 1.5f, false);
 
 	ULevelSystem* LevelSystem = GEngine->GetEngineSubsystem<ULevelSystem>();
 

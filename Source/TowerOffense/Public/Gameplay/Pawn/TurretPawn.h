@@ -92,9 +92,9 @@ protected:
 	UPROPERTY(Transient)
 	UMaterialInstanceDynamic* TurretDynamicMaterialInstance;
 
-	uint8 bIsRotate : 1;
 	FRotator TargetAngle; // For rotation
 	float RotationCurrentTime;
+	uint8 bIsRotate : 1;
 	FVector Start; // For fire start point
 	FVector End; // For fire end point
 	FVector ShootDirection;
@@ -122,7 +122,8 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void PostInitializeComponents() override;
-	virtual void RotateTurret();
+	virtual void RotateTurret(
+		const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed);
 	virtual void Fire();
 	virtual void DestroyActor(AActor* ActorToDestroy);
 

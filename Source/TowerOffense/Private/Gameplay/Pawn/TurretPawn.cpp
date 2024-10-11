@@ -155,12 +155,14 @@ void ATurretPawn::PostInitializeComponents()
 		UMyBlueprintFunctionLibrary::GetTeamColor(Team), TurretDynamicMaterialInstance);
 }
 
-void ATurretPawn::RotateTurret()
+void ATurretPawn::RotateTurret(const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed)
 {
 	TurretMesh->SetRelativeRotation(
-		FMath::RInterpTo(TurretMesh->GetRelativeRotation(), TargetAngle, RotationCurrentTime, TurretRotationSpeed));
+		FMath::RInterpTo(Current, Target, DeltaTime, InterpSpeed));
 
-	float LimitTargetAngleYaw = FMath::Fmod(TargetAngle.Yaw, 360.f);
+	//TurretMesh->SetRelativeRotation(Target);
+
+	float LimitTargetAngleYaw = FMath::Fmod(Target.Yaw, 360.f);
 
 	if (LimitTargetAngleYaw > 180.f) // For limit: from -180.f to 180.f 
 	{

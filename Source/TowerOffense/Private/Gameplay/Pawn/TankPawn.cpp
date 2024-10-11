@@ -113,25 +113,70 @@ void ATankPawn::MoveTriggeredInstance(const FInputActionInstance& Instance)
 	}
 }
 
-void ATankPawn::Server_SetActorRotation_Implementation(FRotator ActorRotation)
-{
-	SetActorRotation(ActorRotation);
-}
-
 void ATankPawn::Server_SetActorLocation_Implementation(FVector ActorLocation)
 {
 	SetActorLocation(ActorLocation);
 }
 
-void ATankPawn::Server_SetTurretRotation_Implementation(
-	UStaticMeshComponent* ServerTurret, FRotator ServerTargetAngle,
-	float ServerRotationCurrentTime, float ServerTurretRotationSpeed)
+void ATankPawn::Turn(const FInputActionValue& Value)
 {
-	//Turret->SetWorldRotation(TurretRotation);
+	if (!HasAuthority())
+	{//CLIENT
+		YawTurnRotator = Value.Get<float>();
+		AddActorLocalRotation(FRotator(0.f, YawTurnRotator, 0.f), true, nullptr);
 
-	TurretMesh->SetRelativeRotation(FMath::RInterpTo(
-			TurretMesh->GetRelativeRotation(), ServerTargetAngle,
-			ServerRotationCurrentTime, ServerTurretRotationSpeed));
+		TurretMesh->AddLocalRotation(FRotator(0.f, -YawTurnRotator, 0.f), false, nullptr);
+		TargetAngle.Yaw -= YawTurnRotator;
+
+		if (MovementEffect)
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				GetWorld(), MovementEffect, RightTankTrackRotation->GetComponentLocation());
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				GetWorld(), MovementEffect, LeftTankTrackRotation->GetComponentLocation());
+		}
+
+		Server_SetActorRotation(YawTurnRotator);
+	}
+
+	else
+	{//SERVER
+		Multicast_SetActorRotation(YawTurnRotator);
+	}
+}
+
+void ATankPawn::Server_SetActorRotation_Implementation(float ServerYawTurnRotator)
+{
+	Multicast_SetActorRotation(ServerYawTurnRotator);
+
+	AddActorLocalRotation(FRotator(0.f, ServerYawTurnRotator, 0.f), true, nullptr);
+
+	TurretMesh->AddLocalRotation(FRotator(0.f, -ServerYawTurnRotator, 0.f), false, nullptr);
+	TargetAngle.Yaw -= ServerYawTurnRotator;
+
+	if (MovementEffect)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), MovementEffect, RightTankTrackRotation->GetComponentLocation());
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), MovementEffect, LeftTankTrackRotation->GetComponentLocation());
+	}
+}
+
+void ATankPawn::Multicast_SetActorRotation_Implementation(float MultiServerYawTurnRotator)
+{
+	AddActorLocalRotation(FRotator(0.f, MultiServerYawTurnRotator, 0.f), true, nullptr);
+
+	TurretMesh->AddLocalRotation(FRotator(0.f, -MultiServerYawTurnRotator, 0.f), false, nullptr);
+	TargetAngle.Yaw -= MultiServerYawTurnRotator;
+
+	if (MovementEffect)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), MovementEffect, RightTankTrackRotation->GetComponentLocation());
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), MovementEffect, LeftTankTrackRotation->GetComponentLocation());
+	}
 }
 
 void ATankPawn::MoveCompleted()
@@ -156,25 +201,6 @@ void ATankPawn::StopCollision()
 		bIsCollision = false;
 		GetWorldTimerManager().ClearTimer(CollisionTimerHandle);
 	}
-}
-
-void ATankPawn::Turn(const FInputActionValue& Value)
-{
-	YawTurnRotator = Value.Get<float>();
-	AddActorLocalRotation(FRotator(0.f, YawTurnRotator, 0.f), true, nullptr);
-
-	TurretMesh->AddLocalRotation(FRotator(0.f, -YawTurnRotator, 0.f), false, nullptr);
-	TargetAngle.Yaw -= YawTurnRotator;
-
-	if (MovementEffect)
-	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			GetWorld(), MovementEffect, RightTankTrackRotation->GetComponentLocation());
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			GetWorld(), MovementEffect, LeftTankTrackRotation->GetComponentLocation());
-	}
-
-	Server_SetActorRotation(GetActorRotation());
 }
 
 void ATankPawn::Fire()
@@ -228,9 +254,26 @@ void ATankPawn::NotifyHit(
 	}
 }
 
-void ATankPawn::RotateTurret()
+void ATankPawn::RotateTurret(
+	const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed)
 {
-	Super::RotateTurret();
+	Super::RotateTurret(Current, Target, DeltaTime, InterpSpeed);
+}
+
+void ATankPawn::Server_SetTurretRotation_Implementation(
+	const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed) // doesn`t work correctly
+{
+	RotateTurret(Current, Target, DeltaTime, InterpSpeed);
+	Multicast_SetTurretRotation(Current, Target, DeltaTime, InterpSpeed);
+}
+
+void ATankPawn::Multicast_SetTurretRotation_Implementation(
+	const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed) // doesn`t work correctly
+{
+	if (!IsLocallyControlled())
+	{
+		RotateTurret(Current, Target, DeltaTime, InterpSpeed);
+	}
 }
 
 void ATankPawn::Rotate(const FInputActionValue& Value)
@@ -355,8 +398,6 @@ void ATankPawn::Tick(float DeltaTime)
 		SpeedStopBraking = -CurrentSpeed;
 	}
 
-	RotateTurret();
-
 	if (!bPlayedTurretRotationSoundIteration && bIsRotate)
 	{
 		// Play Sound
@@ -417,8 +458,21 @@ void ATankPawn::Tick(float DeltaTime)
 	}
 
 	Server_SetActorLocation(GetActorLocation());
-	Server_SetTurretRotation(TurretMesh, TargetAngle, RotationCurrentTime, TurretRotationSpeed);
 
+	if (!HasAuthority())
+	{
+		Server_SetTurretRotation(
+			TurretMesh->GetRelativeRotation(), TargetAngle, RotationCurrentTime, TurretRotationSpeed);
+
+		RotateTurret(
+			TurretMesh->GetRelativeRotation(), TargetAngle, RotationCurrentTime, TurretRotationSpeed);
+	}
+
+	else
+	{
+		Multicast_SetTurretRotation(
+			TurretMesh->GetRelativeRotation(), TargetAngle, RotationCurrentTime, TurretRotationSpeed);
+	}
 }
 
 void ATankPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

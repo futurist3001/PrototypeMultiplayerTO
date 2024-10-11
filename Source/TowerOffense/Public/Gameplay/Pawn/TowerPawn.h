@@ -39,7 +39,8 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
-	virtual void RotateTurret() override;
+	virtual void RotateTurret(
+		const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed) override;
 	virtual void Fire() override;
 	bool IsLookToTank();
 	bool IsTheSameTeam(AActor* Actor);
