@@ -147,7 +147,7 @@ void ATOGameModeBase::TankDestroyed(AActor* DestroyedActor)
 		Lose();
 	}
 
-	TOGameState->OnTankDestroyed.Broadcast(NumberTanks);
+	TOGameState->SetNumberTanks(NumberTanks);
 }
 
 void ATOGameModeBase::TowerDestroyed(AActor* DestroyedActor)
@@ -159,5 +159,5 @@ void ATOGameModeBase::TowerDestroyed(AActor* DestroyedActor)
  		Win();
 	}
 
-	TOGameState->OnTowerDestroyed.Broadcast(NumberTowers);
+	TOGameState->SetNumberTowers(NumberTowers);
 }

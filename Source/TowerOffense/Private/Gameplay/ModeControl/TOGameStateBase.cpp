@@ -43,6 +43,22 @@ void ATOGameStateBase::OnRep_GamePhase()
 	// client side; execute some code when GamePhase is replicated
 }
 
+void ATOGameStateBase::OnRep_NumberTanks()
+{
+	if (OnTankDestroyed.IsBound())
+	{
+		OnTankDestroyed.Broadcast(NumberTanksState);
+	}
+}
+
+void ATOGameStateBase::OnRep_NumberTowers()
+{
+	if (OnTowerDestroyed.IsBound())
+	{
+		OnTowerDestroyed.Broadcast(NumberTowersState);
+	}
+}
+
 void ATOGameStateBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);

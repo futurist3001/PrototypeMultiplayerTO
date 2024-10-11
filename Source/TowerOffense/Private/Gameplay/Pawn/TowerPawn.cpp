@@ -46,7 +46,11 @@ void ATowerPawn::Tick(float DeltaTime)
 		if (TurretRotationSound)
 		{
 			TurretRotationAudioComponent = UGameplayStatics::CreateSound2D(GetWorld(), TurretRotationSound);
-			TurretRotationAudioComponent->Play();
+			if (TurretRotationAudioComponent)
+			{
+				TurretRotationAudioComponent->Play();
+			}
+			
 
 			bPlayedTurretRotationSoundIteration = true;
 		}

@@ -36,11 +36,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName MainMenuMapName;
 
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing=OnRep_NumberTanks)
 	int32 NumberTanksState;
 
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_NumberTowers)
 	int32 NumberTowersState;
+
+	
 
 public:
 	ATOGameStateBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -57,6 +59,12 @@ public:
 
 	UFUNCTION()
 	void OnRep_GamePhase();
+
+	UFUNCTION()
+	void OnRep_NumberTanks();
+
+	UFUNCTION()
+	void OnRep_NumberTowers();
 
 protected:
 
