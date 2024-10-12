@@ -118,6 +118,21 @@ void ATankPawn::Server_SetActorLocation_Implementation(FVector ActorLocation)
 	SetActorLocation(ActorLocation);
 }
 
+void ATankPawn::MoveCompleted()
+{
+	bIsStopMoving = true;
+	CurrentTime = 0;
+	bReverseAttempt = false;
+
+	PreviousMovementVector = MovementVector;
+
+	if (MovementSound && MovementAudioComponent && MovementAudioComponent->IsValidLowLevel())
+	{
+		MovementAudioComponent->Stop();
+		MovementAudioComponent->DestroyComponent();
+	}
+}
+
 void ATankPawn::Turn(const FInputActionValue& Value)
 {
 	if (!HasAuthority())
@@ -179,36 +194,6 @@ void ATankPawn::Multicast_SetActorRotation_Implementation(float MultiServerYawTu
 	}
 }
 
-void ATankPawn::Server_SetControlRotation_Implementation(const float YawValue)
-{
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
-	PlayerController->SetControlRotation(FRotator(0.f, YawValue, 0.f));
-}
-
-void ATankPawn::MoveCompleted()
-{
-	bIsStopMoving = true;
-	CurrentTime = 0;
-	bReverseAttempt = false;
-
-	PreviousMovementVector = MovementVector;
-
-	if (MovementSound && MovementAudioComponent && MovementAudioComponent->IsValidLowLevel())
-	{
-		MovementAudioComponent->Stop();
-		MovementAudioComponent->DestroyComponent();
-	}
-}
-
-void ATankPawn::StopCollision()
-{
-	if (bIsStopMoving)
-	{
-		bIsCollision = false;
-		GetWorldTimerManager().ClearTimer(CollisionTimerHandle);
-	}
-}
-
 void ATankPawn::Fire()
 {
 	if (CurrentTimeFire >= FireInterval && CurrentEnergy > 0.f)
@@ -227,10 +212,63 @@ void ATankPawn::Fire()
 				GetWorld(), TOCameraShakeClass, GetActorLocation(), 0.0f, 1000.0f, 1.f);
 		}
 
+		if (!HasAuthority())
+		{
+			Server_Fire(Start, End, CurrentTimeFire, CurrentEnergy, bIsOldShoot);
+		}
+		else
+		{
+			Multicast_Fire(Start, End, CurrentTimeFire, CurrentEnergy, bIsOldShoot);
+		}
+
 		CurrentTimeFire = 0.0f;
 		CurrentEnergy -= 10.f;
 
 		bIsOldShoot = false;
+	}
+}
+
+void ATankPawn::Server_Fire_Implementation(FVector FireStart, FVector FireEnd, float RPCTimeFire, float RPCFireEnergy, bool bRPCIsOldShoot)
+{
+	Multicast_Fire(FireStart, FireEnd, RPCTimeFire, RPCFireEnergy, bRPCIsOldShoot);
+}
+
+void ATankPawn::Multicast_Fire_Implementation(FVector FireStart, FVector FireEnd, float RPCTimeFire, float RPCFireEnergy, bool bRPCIsOldShoot)
+{
+	if (RPCTimeFire >= FireInterval && RPCFireEnergy > 0.f && GetLocalRole() != ROLE_AutonomousProxy)
+	{
+
+		FVector RPCShootDirection = (FireEnd - FireStart).GetSafeNormal();
+
+		FActorSpawnParameters SpawnParameters;
+		SpawnParameters.Owner = SpawnParameters.Instigator = this;
+		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		AProjectile* Projectile = GetWorld()->SpawnActor<AProjectile>(
+			ProjectileActor, FireStart, RPCShootDirection.Rotation(), SpawnParameters);
+		Projectile->FireInDirection(RPCShootDirection);
+
+		if (FireEfect && GetLocalRole() != ROLE_Authority)
+		{
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), FireEfect, ProjectileSpawnPoint->GetComponentLocation());
+		}
+
+		if (ShootSound && GetLocalRole() != ROLE_Authority)
+		{
+			UGameplayStatics::PlaySoundAtLocation(
+				GetWorld(), ShootSound, ProjectileSpawnPoint->GetComponentLocation());
+		}
+
+		if (TOCameraShakeClass && GetLocalRole() != ROLE_Authority)
+		{
+			GetWorld()->GetFirstPlayerController()->PlayerCameraManager->PlayWorldCameraShake(
+				GetWorld(), TOCameraShakeClass, GetActorLocation(), 0.0f, 1000.0f, 1.f);
+		}
+
+		RPCTimeFire = 0.0f;
+		RPCFireEnergy -= 10.f;
+
+		bRPCIsOldShoot = false;
 	}
 }
 
@@ -260,25 +298,25 @@ void ATankPawn::NotifyHit(
 	}
 }
 
+void ATankPawn::StopCollision()
+{
+	if (bIsStopMoving)
+	{
+		bIsCollision = false;
+		GetWorldTimerManager().ClearTimer(CollisionTimerHandle);
+	}
+}
+
 void ATankPawn::RotateTurret(
 	const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed)
 {
 	Super::RotateTurret(Current, Target, DeltaTime, InterpSpeed);
 }
 
-void ATankPawn::Server_SetTurretRotation_Implementation(
-	const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed) // doesn`t work correctly
+void ATankPawn::RotateCompleted()
 {
-	RotateTurret(Current, Target, DeltaTime, InterpSpeed);
-	Multicast_SetTurretRotation(Current, Target, DeltaTime, InterpSpeed);
-}
-
-void ATankPawn::Multicast_SetTurretRotation_Implementation(
-	const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed) // doesn`t work correctly
-{
-	
-	RotateTurret(Current, Target, DeltaTime, InterpSpeed);
-	
+	GetWorldTimerManager().SetTimer(RotComplAdjustingTurretPositionTimerHandle, this,
+		&ATankPawn::AdjustTurretPosition, 3.0f, true);
 }
 
 void ATankPawn::Rotate(const FInputActionValue& Value)
@@ -293,25 +331,10 @@ void ATankPawn::Rotate(const FInputActionValue& Value)
 	Server_SetControlRotation(YawCameraRotator);
 }
 
-void ATankPawn::RotateCompleted()
+void ATankPawn::Server_SetControlRotation_Implementation(const float YawValue)
 {
-	GetWorldTimerManager().SetTimer(RotComplAdjustingTurretPositionTimerHandle, this,
-		&ATankPawn::AdjustTurretPosition, 3.0f, true);
-}
-
-void ATankPawn::Aiming(const FInputActionValue& Value)
-{
-	float AimingValue = Value.Get<float>();
-	PitchAimingRotator += AimingValue;
-
-	if (PitchAimingRotator > MaxFireHorizontalAngle) // for limiting range of horizontal aiming
-	{
-		PitchAimingRotator = MaxFireHorizontalAngle;
-	}
-	else if (PitchAimingRotator < 0.f) // for limiting range of horizontal aiming
-	{
-		PitchAimingRotator = 0.f;
-	}
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	PlayerController->SetControlRotation(FRotator(0.f, YawValue, 0.f));
 }
 
 void ATankPawn::AdjustTurretPosition()
@@ -370,6 +393,21 @@ void ATankPawn::UpsideDownTank()
 			ReloadLevelTimerHandle, PlayerController, &ATOPlayerController::Restart, 3.0f, false);
 
 		bIsUpsideDown = true;
+	}
+}
+
+void ATankPawn::Aiming(const FInputActionValue& Value)
+{
+	float AimingValue = Value.Get<float>();
+	PitchAimingRotator += AimingValue;
+
+	if (PitchAimingRotator > MaxFireHorizontalAngle) // for limiting range of horizontal aiming
+	{
+		PitchAimingRotator = MaxFireHorizontalAngle;
+	}
+	else if (PitchAimingRotator < 0.f) // for limiting range of horizontal aiming
+	{
+		PitchAimingRotator = 0.f;
 	}
 }
 

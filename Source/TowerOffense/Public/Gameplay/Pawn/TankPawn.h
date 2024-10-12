@@ -143,46 +143,40 @@ protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	virtual void RotateTurret(
 		const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed) override;
+
 	virtual void Fire() override;
+	UFUNCTION(Server, reliable)
+	void Server_Fire(FVector FireStart, FVector FireEnd, float RPCTimeFire, float RPCFireEnergy, bool bRPCIsOldShoot);
+	UFUNCTION(NetMulticast, reliable)
+	void Multicast_Fire(FVector FireStart, FVector FireEnd, float RPCTimeFire, float RPCFireEnergy, bool bRPCIsOldShoot);
 
 	virtual void NotifyHit(
 		UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp, bool bSelfMoved,
 		FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit) override;
 
+	void StopCollision();
+
 	void MoveStarted();
 	void MoveTriggeredValue(const FInputActionValue& Value);
-
 	void MoveTriggeredInstance(const FInputActionInstance& Instance);
-
 	UFUNCTION(Server, unreliable)
 	void Server_SetActorLocation(FVector ActorLocation);
+	void MoveCompleted();
 
+	void Turn(const FInputActionValue& Value);
 	UFUNCTION(Server, unreliable)
 	void Server_SetActorRotation(float ServerYawTurnRotator);
-
 	UFUNCTION(NetMulticast, unreliable)
 	void Multicast_SetActorRotation(float MultiYawTurnRotator);
 
-	UFUNCTION(Server, unreliable)
-	void Server_SetTurretRotation(
-		const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed);
-
-	UFUNCTION(NetMulticast, unreliable)
-	void Multicast_SetTurretRotation(
-		const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed);
-
+	void Rotate(const FInputActionValue& Value);
 	UFUNCTION(Server, unreliable)
 	void Server_SetControlRotation(const float YawValue);
-
-	void MoveCompleted();
-	void StopCollision();
-
-	void Turn(const FInputActionValue& Value);
-	void Rotate(const FInputActionValue& Value);
 	void RotateCompleted();
-	void Aiming(const FInputActionValue& Value);
 
 	void AdjustTurretPosition();
 	void ClearAdjustingTurretPositionTimer();
 	void UpsideDownTank();
+
+	void Aiming(const FInputActionValue& Value);
 };

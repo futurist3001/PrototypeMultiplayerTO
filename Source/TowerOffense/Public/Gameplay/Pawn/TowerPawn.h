@@ -41,12 +41,13 @@ protected:
 	virtual void Tick(float DeltaTime) override;
 	virtual void RotateTurret(
 		const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed) override;
+
 	virtual void Fire() override;
+	UFUNCTION(NetMulticast, reliable)
+	void Multicast_Fire(FVector StartFire, FVector EndFire);
+
 	bool IsLookToTank();
 	bool IsTheSameTeam(AActor* Actor);
-
-	UFUNCTION(Server, unreliable)
-	void Server_SetTurretRotation(UStaticMeshComponent* Turret, FRotator TurretRotation);
 
 private:
 	UFUNCTION()

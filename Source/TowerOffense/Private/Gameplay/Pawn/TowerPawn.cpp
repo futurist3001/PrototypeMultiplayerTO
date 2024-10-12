@@ -69,8 +69,6 @@ void ATowerPawn::Tick(float DeltaTime)
 			bPlayedTurretRotationSoundIteration = false;
 		}
 	}
-
-	Server_SetTurretRotation(TurretMesh, TurretMesh->GetComponentRotation());
 }
 
 void ATowerPawn::RotateTurret(
@@ -83,9 +81,7 @@ void ATowerPawn::RotateTurret(
 		const FRotator NewRotator = UKismetMathLibrary::FindLookAtRotation(
 			GetActorLocation(), OverlapedActor[0]->GetActorLocation()) - GetActorRotation();
 		
-		///////////////////////////////////////////////////////////
-		TargetAngle = FRotator(0.f, NewRotator.Yaw - 90.f, 0.f); // not sure that it`s ok
-		//////////////////////////////////////////////////////////
+		TargetAngle = FRotator(0.f, NewRotator.Yaw - 90.f, 0.f);
 	}
 }
 
@@ -97,6 +93,35 @@ void ATowerPawn::Fire()
 		End = OverlapedActor[0]->GetActorLocation();
 
 		Super::Fire();
+
+		if (GetLocalRole() == ROLE_Authority)
+		{
+			Multicast_Fire(Start, End);
+		}
+	}
+}
+
+void ATowerPawn::Multicast_Fire_Implementation(FVector StartFire, FVector EndFire)
+{
+	FVector RPCShootDirection = (EndFire - StartFire).GetSafeNormal();
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = SpawnParameters.Instigator = this;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AProjectile* Projectile = GetWorld()->SpawnActor<AProjectile>(
+		ProjectileActor, StartFire, RPCShootDirection.Rotation(), SpawnParameters);
+	Projectile->FireInDirection(RPCShootDirection);
+
+	if (FireEfect && GetLocalRole() != ROLE_Authority)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), FireEfect, ProjectileSpawnPoint->GetComponentLocation());
+	}
+
+	if (ShootSound && GetLocalRole() != ROLE_Authority)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			GetWorld(), ShootSound, ProjectileSpawnPoint->GetComponentLocation());
 	}
 }
 
@@ -134,11 +159,6 @@ bool ATowerPawn::IsTheSameTeam(AActor* Actor)
 	}
 
 	return false;
-}
-
-void ATowerPawn::Server_SetTurretRotation_Implementation(UStaticMeshComponent* Turret, FRotator TurretRotation)
-{
-	Turret->SetWorldRotation(TurretRotation);
 }
 
 void ATowerPawn::OnBeginOverlap(

@@ -159,10 +159,6 @@ void ATurretPawn::RotateTurret(const FRotator& Current, const FRotator& Target, 
 {
 	TurretMesh->SetWorldRotation(FMath::RInterpTo(Current, Target, DeltaTime, InterpSpeed));
 
-	//TurretMesh->SetRelativeRotation(FMath::RInterpTo(Current, Target, DeltaTime, InterpSpeed));
-
-	//TurretMesh->SetRelativeRotation(Target);
-
 	float LimitTargetAngleYaw = FMath::Fmod(Target.Yaw, 360.f);
 
 	if (LimitTargetAngleYaw > 180.f) // For limit: from -180.f to 180.f 
