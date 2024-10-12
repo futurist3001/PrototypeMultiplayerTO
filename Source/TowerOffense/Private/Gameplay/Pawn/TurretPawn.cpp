@@ -157,8 +157,9 @@ void ATurretPawn::PostInitializeComponents()
 
 void ATurretPawn::RotateTurret(const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed)
 {
-	TurretMesh->SetRelativeRotation(
-		FMath::RInterpTo(Current, Target, DeltaTime, InterpSpeed));
+	TurretMesh->SetWorldRotation(FMath::RInterpTo(Current, Target, DeltaTime, InterpSpeed));
+
+	//TurretMesh->SetRelativeRotation(FMath::RInterpTo(Current, Target, DeltaTime, InterpSpeed));
 
 	//TurretMesh->SetRelativeRotation(Target);
 

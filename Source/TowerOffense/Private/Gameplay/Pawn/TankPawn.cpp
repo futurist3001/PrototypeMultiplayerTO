@@ -179,6 +179,12 @@ void ATankPawn::Multicast_SetActorRotation_Implementation(float MultiServerYawTu
 	}
 }
 
+void ATankPawn::Server_SetControlRotation_Implementation(const float YawValue)
+{
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	PlayerController->SetControlRotation(FRotator(0.f, YawValue, 0.f));
+}
+
 void ATankPawn::MoveCompleted()
 {
 	bIsStopMoving = true;
@@ -270,10 +276,9 @@ void ATankPawn::Server_SetTurretRotation_Implementation(
 void ATankPawn::Multicast_SetTurretRotation_Implementation(
 	const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed) // doesn`t work correctly
 {
-	if (!IsLocallyControlled())
-	{
-		RotateTurret(Current, Target, DeltaTime, InterpSpeed);
-	}
+	
+	RotateTurret(Current, Target, DeltaTime, InterpSpeed);
+	
 }
 
 void ATankPawn::Rotate(const FInputActionValue& Value)
@@ -284,6 +289,8 @@ void ATankPawn::Rotate(const FInputActionValue& Value)
 
 	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
 	PlayerController->SetControlRotation(FRotator(0.f, YawCameraRotator, 0.f));
+
+	Server_SetControlRotation(YawCameraRotator);
 }
 
 void ATankPawn::RotateCompleted()
@@ -459,20 +466,14 @@ void ATankPawn::Tick(float DeltaTime)
 
 	Server_SetActorLocation(GetActorLocation());
 
-	if (!HasAuthority())
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController)
 	{
-		Server_SetTurretRotation(
-			TurretMesh->GetRelativeRotation(), TargetAngle, RotationCurrentTime, TurretRotationSpeed);
-
-		RotateTurret(
-			TurretMesh->GetRelativeRotation(), TargetAngle, RotationCurrentTime, TurretRotationSpeed);
+		FRotator controlRot = PlayerController->GetControlRotation();
+		controlRot.Yaw -= 90.0f;
+		RotateTurret(TurretMesh->GetComponentRotation(), controlRot, DeltaTime, TurretRotationSpeed);
 	}
-
-	else
-	{
-		Multicast_SetTurretRotation(
-			TurretMesh->GetRelativeRotation(), TargetAngle, RotationCurrentTime, TurretRotationSpeed);
-	}
+	
 }
 
 void ATankPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

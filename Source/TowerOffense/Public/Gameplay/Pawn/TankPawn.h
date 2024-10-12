@@ -171,6 +171,9 @@ protected:
 	void Multicast_SetTurretRotation(
 		const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed);
 
+	UFUNCTION(Server, unreliable)
+	void Server_SetControlRotation(const float YawValue);
+
 	void MoveCompleted();
 	void StopCollision();
 
