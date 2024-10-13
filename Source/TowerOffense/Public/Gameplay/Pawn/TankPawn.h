@@ -161,6 +161,12 @@ protected:
 	void MoveTriggeredInstance(const FInputActionInstance& Instance);
 	UFUNCTION(Server, unreliable)
 	void Server_SetActorLocation(FVector ActorLocation);
+	UFUNCTION(Server, unreliable)
+	void Server_PlayVFXSFXMoveAnim(
+		bool RPCIsReverseAtempt, FVector RPCMovementVector, FVector RPCPreviousMovVector, float RPCSpeedStopBraking);
+	UFUNCTION(NetMulticast, unreliable)
+	void Multicast_PlayVFXSFXMoveAnim(
+		bool RPCIsReverseAtempt, FVector RPCMovementVector, FVector RPCPreviousMovVector, float RPCSpeedStopBraking);
 	void MoveCompleted();
 
 	void Turn(const FInputActionValue& Value);

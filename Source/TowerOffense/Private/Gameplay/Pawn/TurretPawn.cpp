@@ -1,6 +1,7 @@
 #include "TowerOffense/Public/Gameplay/Pawn/TurretPawn.h"
 
 #include "Components/CapsuleComponent.h"
+#include "Components/ProgressBar.h"
 #include "Components/WidgetComponent.h"
 #include "TowerOffense/Public/Gameplay/UI/HealthTurretWidget.h"
 #include "Kismet/GameplayStatics.h"
@@ -236,10 +237,50 @@ void ATurretPawn::HealthCheckedDeath(AActor* HealthKeeper, UTOHealthComponent* P
 				UGameplayStatics::PlaySoundAtLocation(GetWorld(), DeathSound, GetActorLocation());
 			}
 
+			if (GetLocalRole() == ROLE_Authority)
+			{
+				Multicast_HealthCheckedDeath(
+					HealthKeeper, ParameterHealthComponent->Health, ParameterHealthComponent->DefaultHealth);
+			}
+
 			DestroyActor(HealthKeeper);
 		}
 
 		UpdateHealthBarComponent(HealthKeeper, ParameterHealthComponent);
+
+		if (GetLocalRole() == ROLE_Authority)
+		{
+			Multicast_HealthCheckedDeath(
+				HealthKeeper, ParameterHealthComponent->Health, ParameterHealthComponent->DefaultHealth);
+		}
+	}
+}
+
+void ATurretPawn::Multicast_HealthCheckedDeath_Implementation(
+	AActor* RPCHealthKeeper, float RPCCurrentHealth, float RPCDefaultHealth)
+{
+	if (IsValid(RPCHealthKeeper) && GetLocalRole() != ROLE_Authority)
+	{
+		if (RPCCurrentHealth <= 0)
+		{
+			if (DeathEfect)
+			{
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DeathEfect, GetActorLocation());
+			}
+
+			if (DeathSound)
+			{
+				UGameplayStatics::PlaySoundAtLocation(GetWorld(), DeathSound, GetActorLocation());
+			}
+
+			DestroyActor(RPCHealthKeeper);
+		}
+
+		if (UHealthTurretWidget* HealthBarWidget = Cast<UHealthTurretWidget>(HealthWidgetComponent->GetWidget()))
+		{
+			HealthBarWidget->SetHealthBar(
+				RPCCurrentHealth, RPCDefaultHealth);
+		}
 	}
 }
 

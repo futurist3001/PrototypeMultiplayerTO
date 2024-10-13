@@ -97,6 +97,18 @@ void ATankPawn::MoveTriggeredValue(const FInputActionValue& Value)
 	}
 
 	UpsideDownTank();
+
+	if (IsLocallyControlled())
+	{
+		Server_PlayVFXSFXMoveAnim(
+			!bReverseAttempt, MovementVector, PreviousMovementVector, -SpeedStopBraking);
+	}
+	
+	else
+	{
+		Multicast_PlayVFXSFXMoveAnim(
+			!bReverseAttempt, MovementVector, PreviousMovementVector, -SpeedStopBraking);
+	}
 }
 
 void ATankPawn::MoveTriggeredInstance(const FInputActionInstance& Instance)
@@ -116,6 +128,40 @@ void ATankPawn::MoveTriggeredInstance(const FInputActionInstance& Instance)
 void ATankPawn::Server_SetActorLocation_Implementation(FVector ActorLocation)
 {
 	SetActorLocation(ActorLocation);
+}
+
+void ATankPawn::Server_PlayVFXSFXMoveAnim_Implementation(
+	bool RPCIsReverseAtempt, FVector RPCMovementVector, FVector RPCPreviousMovVector, float RPCSpeedStopBraking)
+{
+	Multicast_PlayVFXSFXMoveAnim(RPCIsReverseAtempt, RPCMovementVector, RPCPreviousMovVector, RPCSpeedStopBraking);
+}
+
+void ATankPawn::Multicast_PlayVFXSFXMoveAnim_Implementation(
+	bool RPCIsReverseAtempt, FVector RPCMovementVector, FVector RPCPreviousMovVector, float RPCSpeedStopBraking)
+{
+	if (GetLocalRole() != ROLE_AutonomousProxy)
+	{
+		if (!RPCIsReverseAtempt) // this will release once
+		{
+			if (RPCMovementVector == RPCPreviousMovVector)
+			{
+				RPCSpeedStopBraking *= -1;
+			}
+			RPCIsReverseAtempt = true;
+		}
+
+		if (MovementEffect)
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				GetWorld(), MovementEffect, RightTankTrack->GetComponentLocation());
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				GetWorld(), MovementEffect, LeftTankTrack->GetComponentLocation());
+		}
+
+		///////////////////////////////////////////////////////////////////
+		// Here must think about IsUpsideDownTank()
+		//////////////////////////////////////////////////////////////////
+	}
 }
 
 void ATankPawn::MoveCompleted()

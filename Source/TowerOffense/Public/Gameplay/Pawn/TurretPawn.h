@@ -113,7 +113,9 @@ public:
 	UFUNCTION()
 	void HealthCheckedDeath(
 		AActor* HealthKeeper, UTOHealthComponent* ParameterHealthComponent);
-
+	UFUNCTION(NetMulticast, reliable)
+	void Multicast_HealthCheckedDeath(
+		AActor* RPCHealthKeeper, float RPCCurrentHealth, float RPCDefaultHealth);
 	UFUNCTION()
 	void UpdateHealthBarComponent(
 		AActor* HealthKeeper, UTOHealthComponent* ParameterHealthComponent);
