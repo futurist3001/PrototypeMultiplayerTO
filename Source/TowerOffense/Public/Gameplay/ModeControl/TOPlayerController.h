@@ -32,6 +32,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UTOHUDWidget> HUDWidgetClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUserWidget> YouAreDeadWidgetClass;
+
 	UPROPERTY(Transient, BlueprintReadWrite, Category = "UI")
 	TObjectPtr<UTOWinLoseWidget> WinLoseWidget;
 
@@ -43,6 +46,9 @@ protected:
 
 	UPROPERTY(Transient, BlueprintReadWrite, Category = "UI")
 	TObjectPtr<UTOHUDWidget> HUDWidget;
+
+	UPROPERTY(Transient, BlueprintReadWrite, Category = "UI")
+	TObjectPtr<UUserWidget> YouAreDeadWidget;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX")
 	TObjectPtr<USoundBase> GameBackMusic;
@@ -81,8 +87,11 @@ private:
 	void Server_ChangeGamePhase();
 
 	UFUNCTION()
-	void LimitPlayerMovement(EGamePhase EndGameState); // here parameter only for binding OnEndGame
+	void CreateDeadWidget(AActor* HealthKeeper, UTOHealthComponent* ParameterHealthComponent);
 
 	UFUNCTION()
-	void CreateWinLoseWidget(EGamePhase EndGameState); // here parameter only for binding OnEndGame
+	void LimitPlayerMovement();
+
+	UFUNCTION()
+	void CreateWinLoseWidget(EGamePhase EndGamePhase);
 };

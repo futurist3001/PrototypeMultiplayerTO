@@ -17,7 +17,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 	float DefaultHealth;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(ReplicatedUsing = OnRep_HealthChanged, BlueprintReadOnly)
 	float Health;
 
 	UPROPERTY(BlueprintAssignable)
@@ -31,6 +31,12 @@ public:
 		AActor* DamagedActor, float Damage, const UDamageType* DamageType,
 		AController* InstigatedBy, AActor* DamageCauser);
 
+	UFUNCTION()
+	void OnRep_HealthChanged();
+
 protected:
 	virtual void BeginPlay() override;
+
+private:
+	void BroadcastOnServerSide();
 };

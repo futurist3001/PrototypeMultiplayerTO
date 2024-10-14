@@ -134,7 +134,6 @@ void ATOGameModeBase::SetEndGameState(EGamePhase Phase)
 	if (GameState)
 	{
 		TOGameState->SetGamePhase(Phase);
-		TOGameState->OnGamePhaseChanged.Broadcast(Phase);
 	}
 }
 

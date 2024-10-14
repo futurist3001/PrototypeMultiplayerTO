@@ -39,8 +39,11 @@ void ATOGameStateBase::SetNumberTanks(int32 Tanks)
 }
 
 void ATOGameStateBase::OnRep_GamePhase()
-{
-	// client side; execute some code when GamePhase is replicated
+{// client side; execute some code when GamePhase is replicated
+	if (OnGamePhaseChanged.IsBound())
+	{
+		OnGamePhaseChanged.Broadcast(GamePhase);
+	}
 }
 
 void ATOGameStateBase::OnRep_NumberTanks()
