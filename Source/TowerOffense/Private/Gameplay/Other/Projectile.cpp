@@ -50,7 +50,7 @@ void AProjectile::OnHit(
 {
 	if (OtherActor && (OtherActor != GetOwner()) && (OtherActor != GetInstigator()))
 	{                                                                                             
-		if (GetInstigator()->IsA<ATurretPawn>() && OtherActor->IsA<ATurretPawn>())
+		if (GetInstigator() && GetInstigator()->IsA<ATurretPawn>() && OtherActor->IsA<ATurretPawn>())
 		{
 			const ATurretPawn* TransmitterTurretPawn = Cast<ATurretPawn>(GetInstigator());
 			const ATurretPawn* ReceiverTurretPawn = Cast<ATurretPawn>(OtherActor);

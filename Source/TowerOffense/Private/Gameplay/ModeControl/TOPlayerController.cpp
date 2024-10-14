@@ -54,11 +54,11 @@ void ATOPlayerController::BeginPlay()
 		CreateHUDWidget();
 
 		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &ATOPlayerController::DestroyPreparationWidget, 4.f, false);
+	}
 
-		if (ATOGameStateBase* GameState = GetWorld()->GetGameState<ATOGameStateBase>())
-		{
-			GameState->OnGamePhaseChanged.AddDynamic(this, &ThisClass::CreateWinLoseWidget);
-		}
+	if (ATOGameStateBase* GameState = GetWorld()->GetGameState<ATOGameStateBase>())
+	{
+		GameState->OnGamePhaseChanged.AddDynamic(this, &ThisClass::CreateWinLoseWidget);
 	}
 
 	if (ATankPawn* TankPawn = GetPawn<ATankPawn>(); TankPawn && HUDWidget)
@@ -202,26 +202,39 @@ void ATOPlayerController::LimitPlayerMovement()
 
 void ATOPlayerController::CreateWinLoseWidget(EGamePhase EndGamePhase)
 {
-	if ((GetWorld() && !GetWorld()->bIsTearingDown && GetLocalRole() != ROLE_Authority)
+	if ((GetWorld() && !GetWorld()->bIsTearingDown)
 		&& (EndGamePhase == EGamePhase::Win || EndGamePhase == EGamePhase::Lose))
 	{
-		if (YouAreDeadWidget)
+		if (GetLocalRole() != ROLE_Authority)
 		{
-			YouAreDeadWidget->RemoveFromParent();
-			YouAreDeadWidget = nullptr;
+			if (YouAreDeadWidget)
+			{
+				YouAreDeadWidget->RemoveFromParent();
+				YouAreDeadWidget = nullptr;
+			}
+
+			if (HUDWidget)
+			{
+				HUDWidget->RemoveFromParent();
+				HUDWidget = nullptr;
+			}
+
+			if (ScopeWidget)
+			{
+				ScopeWidget->RemoveFromParent();
+				ScopeWidget = nullptr;
+			}
+
+			WinLoseWidget = CreateWidget<UTOWinLoseWidget>(this, WinLoseWidgetClass);
+			WinLoseWidget->SetEndGameStateTextColor(EndGamePhase);
+			WinLoseWidget->AddToViewport();
+			WinLoseWidget->SetVisibility(ESlateVisibility::Visible);
+			LimitPlayerMovement();
 		}
 
-		if (HUDWidget)
+		if (GetLocalRole() == ROLE_Authority)
 		{
-			HUDWidget->RemoveFromParent();
-			HUDWidget = nullptr;
+			UGameplayStatics::SetGamePaused(GetWorld(), true); // this isn`t working
 		}
-
-		WinLoseWidget = CreateWidget<UTOWinLoseWidget>(this, WinLoseWidgetClass);
-		WinLoseWidget->SetEndGameStateTextColor(EndGamePhase);
-		WinLoseWidget->AddToViewport();
-		WinLoseWidget->SetVisibility(ESlateVisibility::Visible);
-		UGameplayStatics::SetGamePaused(GetWorld(), true); // not sure that this func executes
-		LimitPlayerMovement();
 	}
 }

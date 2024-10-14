@@ -134,6 +134,11 @@ void ATOGameModeBase::SetEndGameState(EGamePhase Phase)
 	if (GameState)
 	{
 		TOGameState->SetGamePhase(Phase);
+
+		if (Phase == EGamePhase::Lose || Phase == EGamePhase::Win)
+		{
+			TOGameState->OnGamePhaseChanged.Broadcast(Phase); // Broadcast on server side for correct pause game at the end
+		}
 	}
 }
 
