@@ -19,34 +19,31 @@ protected:
 	UPROPERTY(Transient)
 	TArray<AActor*> OverlapedActor;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Fire")
-	float PeriodFire;
-
 private:
-	FTimerHandle FireTimerHandle;
 	uint8 bPlayedTurretRotationSoundIteration : 1;
 	uint8 bIsPlaying : 1;
 
 public:
 	ATowerPawn(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-public:
 	FORCEINLINE void SetPlayState(bool IsPlaying)
 	{
 		bIsPlaying = IsPlaying;
 	}
 
+	virtual void RotateTurret(
+		const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed) override; // alternative: make some class friend to that to avoid putting this func into public section
+	virtual void Fire() override; // alternative: make some class friend to that to avoid putting this func into public section
+
+	bool IsLookToTank();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
-	virtual void RotateTurret(
-		const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed) override;
 
-	virtual void Fire() override;
 	UFUNCTION(NetMulticast, reliable)
 	void Multicast_Fire(FVector StartFire, FVector EndFire);
 
-	bool IsLookToTank();
 	bool IsTheSameTeam(AActor* Actor);
 
 private:

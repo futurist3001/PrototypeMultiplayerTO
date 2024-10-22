@@ -1,11 +1,14 @@
 #include "TowerOffense/Public/Gameplay/Pawn/TowerPawn.h"
 
-#include "TowerOffense/Public/Gameplay/Pawn/TankPawn.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "BehaviorTree/Decorators/BTDecorator_BlackboardBase.h"
 #include "Components/AudioComponent.h"
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "TowerOffense/Public/AI/NPC_TowerAIController.h"
+#include "TowerOffense/Public/Gameplay/Pawn/TankPawn.h"
 #include "TowerOffense/Public/Gameplay/Other/Projectile.h"
 
 ATowerPawn::ATowerPawn(const FObjectInitializer& ObjectInitializer)
@@ -16,7 +19,6 @@ ATowerPawn::ATowerPawn(const FObjectInitializer& ObjectInitializer)
 	SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("ShootingZone"));
 	SphereComponent->SetupAttachment(RootComponent);
 
-	PeriodFire = 2.0f;
 	bIsPlaying = false;
 
 	bReplicates = true;
@@ -28,17 +30,16 @@ void ATowerPawn::BeginPlay()
 
 	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &ThisClass::OnBeginOverlap);
 	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &ThisClass::OnEndOverlap);
+
+	if (ANPC_TowerAIController* AIController = Cast<ANPC_TowerAIController>(GetController()))
+	{
+		AIController->GetBlackboardComponent()->SetValueAsBool("IsDetected", false);
+	}
 }
 
 void ATowerPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	if (!OverlapedActor.IsEmpty())
-	{
-		RotateTurret(
-			TurretMesh.Get()->GetRelativeRotation(), TargetAngle, RotationCurrentTime, TurretRotationSpeed);
-	}
 
 	if (!bPlayedTurretRotationSoundIteration && bIsRotate)
 	{
@@ -51,7 +52,6 @@ void ATowerPawn::Tick(float DeltaTime)
 			{
 				TurretRotationAudioComponent->Play();
 			}
-			
 
 			bPlayedTurretRotationSoundIteration = true;
 		}
@@ -74,14 +74,17 @@ void ATowerPawn::Tick(float DeltaTime)
 void ATowerPawn::RotateTurret(
 	const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed)
 {
-	if (!IsTheSameTeam(OverlapedActor[0]) && bIsPlaying)
+	if (!OverlapedActor.IsEmpty() && OverlapedActor[0])
 	{
-		Super::RotateTurret(Current, Target, DeltaTime, InterpSpeed);
+		if (!IsTheSameTeam(OverlapedActor[0]) && bIsPlaying)
+		{
+			const FRotator NewRotator = UKismetMathLibrary::FindLookAtRotation(
+				GetActorLocation(), OverlapedActor[0]->GetActorLocation()) - GetActorRotation(); // subtract GetActorRotation for normal start rotation of turret mesh
 
-		const FRotator NewRotator = UKismetMathLibrary::FindLookAtRotation(
-			GetActorLocation(), OverlapedActor[0]->GetActorLocation()) - GetActorRotation();
-		
-		TargetAngle = FRotator(0.f, NewRotator.Yaw - 90.f, 0.f);
+			TargetAngle = FRotator(0.f, NewRotator.Yaw - 90.f, 0.f);
+
+			Super::RotateTurret(Current, Target, DeltaTime, InterpSpeed);
+		}
 	}
 }
 
@@ -139,7 +142,13 @@ bool ATowerPawn::IsLookToTank()
 	{
 		if (HitResult.GetActor()->IsA<ATankPawn>())
 		{
-			return true;
+			if (ATankPawn* TankPawn = Cast<ATankPawn>(HitResult.GetActor()))
+			{
+				if (TankPawn->GetActorLocation() == OverlapedActor[0]->GetActorLocation())
+				{// necessary for normal tower behavior (shooting) after one player leave shooting zone and still in zone is another player
+					return true;
+				}
+			}
 		}
 	}
 
@@ -168,9 +177,15 @@ void ATowerPawn::OnBeginOverlap(
 	{
 		if (OtherActor && OtherActor->IsA<ATankPawn>())
 		{
-			OverlapedActor.Add(OtherActor);
+			if (OverlapedActor.IsEmpty())
+			{
+				if (ANPC_TowerAIController* AIController = Cast<ANPC_TowerAIController>(GetController())) // if in shooting zone no players(tanks) and then someone overlap this zone tower activated
+				{
+					AIController->GetBlackboardComponent()->SetValueAsBool("IsDetected", true);
+				}
+			}
 
-			GetWorldTimerManager().SetTimer(FireTimerHandle, this, &ATowerPawn::Fire, PeriodFire, true);
+			OverlapedActor.Add(OtherActor);
 		}
 	}
 }
@@ -187,7 +202,10 @@ void ATowerPawn::OnEndOverlap(
 
 			if (OverlapedActor.IsEmpty())
 			{
-				GetWorldTimerManager().ClearTimer(FireTimerHandle);
+				if (ANPC_TowerAIController* AIController = Cast<ANPC_TowerAIController>(GetController())) // if in shooting zone no players (tanks) tower deactivated
+				{
+					AIController->GetBlackboardComponent()->SetValueAsBool("IsDetected", false);
+				}
 
 				if (TurretRotationSound && TurretRotationAudioComponent && TurretRotationAudioComponent->IsValidLowLevel()) // if the turret did not have time to aim
 				{

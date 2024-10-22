@@ -108,6 +108,21 @@ public:
 		return Team;
 	}
 
+	FORCEINLINE const FRotator GetTargetAngle() const
+	{
+		return TargetAngle;
+	}
+
+	FORCEINLINE const float GetTurretRotationSpeed() const
+	{
+		return TurretRotationSpeed;
+	}
+
+	FORCEINLINE const float GetRotationCurrentTime() const
+	{
+		return RotationCurrentTime;
+	}
+
 	void ShakeCameraAfterKilling() const;
 
 	UFUNCTION()
