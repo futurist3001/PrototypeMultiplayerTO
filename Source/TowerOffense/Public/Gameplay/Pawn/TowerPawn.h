@@ -20,6 +20,8 @@ protected:
 	TArray<AActor*> OverlapedActor;
 
 private:
+	const FName DetectedBBKeyName = "IsDetected";
+
 	uint8 bPlayedTurretRotationSoundIteration : 1;
 	uint8 bIsPlaying : 1;
 

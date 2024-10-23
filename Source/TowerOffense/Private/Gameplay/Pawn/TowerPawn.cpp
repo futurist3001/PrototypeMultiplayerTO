@@ -20,7 +20,6 @@ ATowerPawn::ATowerPawn(const FObjectInitializer& ObjectInitializer)
 	SphereComponent->SetupAttachment(RootComponent);
 
 	bIsPlaying = false;
-
 	bReplicates = true;
 }
 
@@ -33,7 +32,7 @@ void ATowerPawn::BeginPlay()
 
 	if (ANPC_TowerAIController* AIController = Cast<ANPC_TowerAIController>(GetController()))
 	{
-		AIController->GetBlackboardComponent()->SetValueAsBool("IsDetected", false);
+		AIController->GetBlackboardComponent()->SetValueAsBool(DetectedBBKeyName, false);
 	}
 }
 
@@ -93,7 +92,18 @@ void ATowerPawn::Fire()
 	if (IsLookToTank() && !IsTheSameTeam(OverlapedActor[0]) && bIsPlaying)
 	{
 		Start = ProjectileSpawnPoint->GetComponentLocation();
-		End = OverlapedActor[0]->GetActorLocation();
+		
+		if (FVector::DistXY(OverlapedActor[0]->GetActorLocation(), GetActorLocation()) < 3000.f)
+		{
+			End = OverlapedActor[0]->GetActorLocation();
+		}
+
+		else
+		{
+			End = FVector(OverlapedActor[0]->GetActorLocation().X,
+				OverlapedActor[0]->GetActorLocation().Y,
+				OverlapedActor[0]->GetActorLocation().Z + 120.f);
+		}
 
 		Super::Fire();
 
@@ -135,18 +145,21 @@ bool ATowerPawn::IsLookToTank()
 	FVector StartPointLook = ProjectileSpawnPoint->GetComponentLocation();
 	FVector EndPointLook = StartPointLook + ProjectileSpawnPoint->GetForwardVector() * 5000.f;
 
-	if (GetWorld()->LineTraceSingleByChannel(HitResult,
-		FVector(StartPointLook.X, StartPointLook.Y, OverlapedActor[0]->GetActorLocation().Z + 150.f),
-		FVector(EndPointLook.X, EndPointLook.Y, OverlapedActor[0]->GetActorLocation().Z + 150.f),
-		ECollisionChannel::ECC_Visibility))
+	if (!OverlapedActor.IsEmpty())
 	{
-		if (HitResult.GetActor()->IsA<ATankPawn>())
+		if (GetWorld()->LineTraceSingleByChannel(HitResult,
+			FVector(StartPointLook.X, StartPointLook.Y, OverlapedActor[0]->GetActorLocation().Z + 150.f),
+			FVector(EndPointLook.X, EndPointLook.Y, OverlapedActor[0]->GetActorLocation().Z + 150.f),
+			ECollisionChannel::ECC_Visibility))
 		{
-			if (ATankPawn* TankPawn = Cast<ATankPawn>(HitResult.GetActor()))
+			if (HitResult.GetActor()->IsA<ATankPawn>())
 			{
-				if (TankPawn->GetActorLocation() == OverlapedActor[0]->GetActorLocation())
-				{// necessary for normal tower behavior (shooting) after one player leave shooting zone and still in zone is another player
-					return true;
+				if (ATankPawn* TankPawn = Cast<ATankPawn>(HitResult.GetActor()))
+				{
+					if (TankPawn->GetActorLocation() == OverlapedActor[0]->GetActorLocation())
+					{// necessary for normal tower behavior (shooting) after one player leave shooting zone and still in zone is another player
+						return true;
+					}
 				}
 			}
 		}
@@ -204,7 +217,7 @@ void ATowerPawn::OnEndOverlap(
 			{
 				if (ANPC_TowerAIController* AIController = Cast<ANPC_TowerAIController>(GetController())) // if in shooting zone no players (tanks) tower deactivated
 				{
-					AIController->GetBlackboardComponent()->SetValueAsBool("IsDetected", false);
+					AIController->GetBlackboardComponent()->SetValueAsBool(DetectedBBKeyName, false);
 				}
 
 				if (TurretRotationSound && TurretRotationAudioComponent && TurretRotationAudioComponent->IsValidLowLevel()) // if the turret did not have time to aim

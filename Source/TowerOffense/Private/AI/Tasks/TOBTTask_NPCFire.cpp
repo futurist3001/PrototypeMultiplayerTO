@@ -17,7 +17,6 @@ EBTNodeResult::Type UTOBTTask_NPCFire::ExecuteTask(UBehaviorTreeComponent& Owner
 			{
 				TowerPawn->Fire();
 
-				FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 				return EBTNodeResult::Succeeded;
 			}
 		}

@@ -21,7 +21,6 @@ EBTNodeResult::Type UTOBTTask_NPCRotate::ExecuteTask(UBehaviorTreeComponent& Own
 					TowerPawn->TurretMesh->GetComponentRotation(), TowerPawn->GetTargetAngle(),
 					TowerPawn->GetRotationCurrentTime(), TowerPawn->GetTurretRotationSpeed());
 
-				FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 				return EBTNodeResult::Succeeded;
 			}
 		}
