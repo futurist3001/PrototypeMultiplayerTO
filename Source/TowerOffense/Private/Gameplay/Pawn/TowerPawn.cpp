@@ -78,7 +78,7 @@ void ATowerPawn::RotateTurret(
 		if (!IsTheSameTeam(OverlapedActor[0]) && bIsPlaying)
 		{
 			const FRotator NewRotator = UKismetMathLibrary::FindLookAtRotation(
-				GetActorLocation(), OverlapedActor[0]->GetActorLocation()) - GetActorRotation(); // subtract GetActorRotation for normal start rotation of turret mesh
+				GetActorLocation(), OverlapedActor[0]->GetActorLocation());
 
 			TargetAngle = FRotator(0.f, NewRotator.Yaw - 90.f, 0.f);
 

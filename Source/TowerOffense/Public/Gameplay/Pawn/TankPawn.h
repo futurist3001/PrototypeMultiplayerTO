@@ -185,4 +185,11 @@ protected:
 	void UpsideDownTank();
 
 	void Aiming(const FInputActionValue& Value);
+
+	UFUNCTION(Exec, Category = "Team")
+	void ChangeTeam(ETeam TeamChange); // console command
+	UFUNCTION(Server, reliable)
+	void Server_ChangeTeam(ETeam TeamChange);
+	UFUNCTION(NetMulticast, reliable)
+	void Multicast_ChangeTeam(ETeam TeamChange);
 };

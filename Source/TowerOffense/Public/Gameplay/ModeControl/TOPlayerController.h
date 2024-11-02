@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "TowerOffense/Public/Gameplay/ModeControl/TOGameStateBase.h"
+#include "TowerOffense/Public/Gameplay/ModeControl/TOGameModeBase.h"
 
 #include "TOPlayerController.generated.h"
 
@@ -53,6 +54,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX")
 	TObjectPtr<USoundBase> GameBackMusic;
 
+	ETeam PlayerTeam;
+
 private:
 	FTimerHandle TimerHandle;
 
@@ -69,6 +72,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
+	virtual void OnPossess(APawn* InPawn) override;
 
 	void CreateScopeWidget();
 

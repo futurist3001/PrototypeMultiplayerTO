@@ -63,11 +63,48 @@ void ATOGameModeBase::InitPlayData()
 #undef INIT_PLAY_DATA
 }
 
+void ATOGameModeBase::AlternativeInitPlayData()
+{
+	TArray<AActor*> Tanks;
+	UGameplayStatics::GetAllActorsOfClass(this, ATankPawn::StaticClass(), Tanks);
+
+	for (AActor* Tank : Tanks)
+	{
+		if (ATankPawn* TankPlayer = Cast<ATankPawn>(Tank))
+		{
+			switch (TankPlayer->Execute_GetTeam(TankPlayer))
+			{
+				case ETeam::Team1:
+					++FirstTeamPlayers;
+					break;
+
+				case ETeam::Team2:
+					++SecondTeamPlayers;
+					break;
+
+				case ETeam::Team3:
+					++ThirdTeamPlayers;
+					break;
+
+				case ETeam::Team4:
+					++FourthTeamPlayers;
+					break;
+					
+				default:
+					break;
+			}
+
+			TankPlayer->OnDestroyed.AddDynamic(this, &ATOGameModeBase::AlternativeTankDestroyed);
+		}
+	}
+}
+
 void ATOGameModeBase::PostponeInitilize()
 {
 	if (ATOGameStateBase* TOGameState = GetGameState<ATOGameStateBase>())
 	{
 		InitPlayData();
+		AlternativeInitPlayData();
 
 		TOGameState->SetNumberTowers(NumberTowers);
 		TOGameState->SetNumberTanks(NumberTanks);
@@ -152,6 +189,30 @@ void ATOGameModeBase::TankDestroyed(AActor* DestroyedActor)
 	}
 
 	TOGameState->SetNumberTanks(NumberTanks);
+}
+
+void ATOGameModeBase::AlternativeTankDestroyed(AActor* DestroyedActor)
+{
+	if (ATankPawn* TankPawn = Cast<ATankPawn>(DestroyedActor))
+	{
+		switch (TankPawn->Execute_GetTeam(TankPawn))
+		{
+			case ETeam::Team1:
+				--FirstTeamPlayers;
+
+			case ETeam::Team2:
+				--SecondTeamPlayers;
+
+			case ETeam::Team3:
+				--ThirdTeamPlayers;
+
+			case ETeam::Team4:
+				--FourthTeamPlayers;
+
+			default:
+				break;
+		}
+	}
 }
 
 void ATOGameModeBase::TowerDestroyed(AActor* DestroyedActor)

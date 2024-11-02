@@ -29,7 +29,7 @@ void ATOMMPlayerController::LimitPlayerMovement()
 
 void ATOMMPlayerController::CreateMainMenuWidget()
 {
-	if (MainMenuWidgetClass)
+	if (MainMenuWidgetClass && GetLocalRole() != ROLE_Authority)
 	{
 		MainMenuWidget = CreateWidget<UTOMainMenuWidget>(this, MainMenuWidgetClass);
 		MainMenuWidget->AddToViewport();
@@ -39,7 +39,7 @@ void ATOMMPlayerController::CreateMainMenuWidget()
 
 void ATOMMPlayerController::CreatePageLevelWidget()
 {
-	if (PageLevelClass)
+	if (PageLevelClass && GetLocalRole() != ROLE_Authority)
 	{
 		ULevelSystem* LevelSystem = GEngine->GetEngineSubsystem<ULevelSystem>();
 

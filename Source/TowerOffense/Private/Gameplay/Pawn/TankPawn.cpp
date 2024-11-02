@@ -16,6 +16,7 @@
 #include "TowerOffense/Public/Gameplay/Other/Projectile.h"
 #include "TowerOffense/Public/Gameplay/Other/TOCameraShake.h"
 #include "TowerOffense/Public/Gameplay/ModeControl/TOPlayerController.h"
+#include "TowerOffense/Public/Generic/MyBlueprintFunctionLibrary.h"
 
 ATankPawn::ATankPawn(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -457,10 +458,43 @@ void ATankPawn::Aiming(const FInputActionValue& Value)
 	}
 }
 
+void ATankPawn::ChangeTeam(ETeam TeamChange)
+{
+	Team = TeamChange;
+	
+	SetMeshMaterial(
+		BaseMesh, BaseMeshMaterialSlotName, BaseMaterialParameterName,
+		UMyBlueprintFunctionLibrary::GetTeamColor(Team), BaseDynamicMaterialInstance);
+
+	SetMeshMaterial(
+		TurretMesh, TurretMeshMaterialSlotName, TurretMaterialParameterName,
+		UMyBlueprintFunctionLibrary::GetTeamColor(Team), TurretDynamicMaterialInstance);
+
+	Server_ChangeTeam(TeamChange);
+}
+
+void ATankPawn::Server_ChangeTeam_Implementation(ETeam TeamChange)
+{
+	Multicast_ChangeTeam(TeamChange);
+}
+
+void ATankPawn::Multicast_ChangeTeam_Implementation(ETeam TeamChange)
+{
+	Team = TeamChange;
+
+	SetMeshMaterial(
+		BaseMesh, BaseMeshMaterialSlotName, BaseMaterialParameterName,
+		UMyBlueprintFunctionLibrary::GetTeamColor(Team), BaseDynamicMaterialInstance);
+
+	SetMeshMaterial(
+		TurretMesh, TurretMeshMaterialSlotName, TurretMaterialParameterName,
+		UMyBlueprintFunctionLibrary::GetTeamColor(Team), TurretDynamicMaterialInstance);
+}
+
 void ATankPawn::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	BaseMesh->SetWorldRotation(GetActorRotation() - FRotator(0.f, 90.f, 0.f));
 	YawCameraRotator = GetActorRotation().Yaw;
 

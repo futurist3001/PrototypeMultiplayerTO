@@ -19,5 +19,5 @@ class TOWEROFFENSE_API ITeamMemberInterface
 
 public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
-	ETeam GetTeam() const;
+	const ETeam GetTeam() const;
 };

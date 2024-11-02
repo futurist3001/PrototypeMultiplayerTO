@@ -10,7 +10,10 @@ UENUM(BlueprintType)
 enum class ETeam : uint8
 {
 	Team1 UMETA(DisplayName = "Team 1"),
-	Team2 UMETA(DisplayName = "Team 2")
+	Team2 UMETA(DisplayName = "Team 2"),
+	Team3 UMETA(DisplayName = "Team 3"),
+	Team4 UMETA(DisplayName = "Team 4"),
+	AI UMETA(DisplayName = "AI")
 };
 
 class USoundBase;
@@ -25,8 +28,12 @@ public:
 protected:
 	
 private:
-	int32 NumberTowers;
-	int32 NumberTanks;
+	int32 FirstTeamPlayers;
+	int32 SecondTeamPlayers;
+	int32 ThirdTeamPlayers;
+	int32 FourthTeamPlayers;
+	int32 NumberTowers; // it`s not necessary
+	int32 NumberTanks; // it`s not necessary
 	uint8 bIsGameStarted : 1;
 
 public:
@@ -41,6 +48,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	void InitPlayData();
+	void AlternativeInitPlayData();
 	void PostponeInitilize();
 
 	void Win();
@@ -51,6 +59,8 @@ protected:
 private:
 	UFUNCTION()
 	void TankDestroyed(AActor* DestroyedActor);
+	UFUNCTION()
+	void AlternativeTankDestroyed(AActor* DestroyedActor);
 
 	UFUNCTION()
 	void TowerDestroyed(AActor* DestroyedActor);

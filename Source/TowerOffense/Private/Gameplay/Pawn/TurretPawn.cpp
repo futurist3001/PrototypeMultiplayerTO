@@ -105,12 +105,20 @@ void ATurretPawn::SetMeshMaterial(
 {
 	if (IsValid(MeshComponent))
 	{
-		const int32 MaterialIndex = MeshComponent->GetMaterialIndex(MeshMaterialSlotName);
-		UMaterialInterface* Material = MeshComponent->GetMaterial(MaterialIndex);
+		if (DynamicMaterialInstance)
+		{// If the dynamic material already exists, simply update the color parameter
+			DynamicMaterialInstance->SetVectorParameterValue(MaterialParameterName, Color);
+		}
 
-		DynamicMaterialInstance = UMaterialInstanceDynamic::Create(Material, this);
-		DynamicMaterialInstance->SetVectorParameterValue(MaterialParameterName, Color);
-		MeshComponent->SetMaterial(MaterialIndex, DynamicMaterialInstance);
+		else
+		{// Get the base material to create a new dynamic material
+			const int32 MaterialIndex = MeshComponent->GetMaterialIndex(MeshMaterialSlotName);
+			UMaterialInterface* Material = MeshComponent->GetMaterial(MaterialIndex);
+
+			DynamicMaterialInstance = UMaterialInstanceDynamic::Create(Material, this);
+			DynamicMaterialInstance->SetVectorParameterValue(MaterialParameterName, Color);
+			MeshComponent->SetMaterial(MaterialIndex, DynamicMaterialInstance);
+		}
 	}
 }
 
@@ -142,10 +150,9 @@ void ATurretPawn::Tick(float DeltaTime)
 	}
 }
 
-// using OnConstruction(const FTransform &Transform) leads to unpredictable results
-void ATurretPawn::PostInitializeComponents()
+void ATurretPawn::OnConstruction(const FTransform& Transform)
 {
-	Super::PostInitializeComponents();
+	Super::OnConstruction(Transform);
 
 	SetMeshMaterial(
 		BaseMesh, BaseMeshMaterialSlotName, BaseMaterialParameterName,

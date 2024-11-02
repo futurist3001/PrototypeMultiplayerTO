@@ -89,6 +89,16 @@ void ATOPlayerController::Tick(float DeltaTime)
 	}
 }
 
+void ATOPlayerController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+
+	if (ATankPawn* TankPawn = Cast<ATankPawn>(InPawn))
+	{
+		PlayerTeam = TankPawn->Execute_GetTeam(TankPawn);
+	}
+}
+
 void ATOPlayerController::CreateScopeWidget()
 {
 	ScopeWidget = CreateWidget<UTOScopeWidget>(this, ScopeWidgetClass);

@@ -42,6 +42,13 @@ protected:
 	UPROPERTY(Transient, meta = (BindWidgetAnim))
 	TObjectPtr<UWidgetAnimation> MMSlideAnimation;
 
+public:
+	UFUNCTION()
+	void StartGame();
+
+	UFUNCTION()
+	void QuitGame();
+
 protected:
 	virtual void NativeConstruct() override;
 

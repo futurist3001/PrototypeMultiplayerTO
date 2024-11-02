@@ -49,6 +49,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX")
 	TObjectPtr<UParticleSystem> FireEfect;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Team")
+	ETeam Team;
+
 protected:
 	UPROPERTY(EditAnywhere, Category = "Base", meta = (GetOptions = "GetBaseMeshMaterialSlotOptions"))
 	FName BaseMeshMaterialSlotName;
@@ -67,9 +70,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Turret")
 	FLinearColor TurretColor;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Team")
-	ETeam Team;
 
 	UPROPERTY(EditAnywhere, Category = "Turret")
 	float TurretRotationSpeed;
@@ -103,7 +103,7 @@ protected:
 public:
 	ATurretPawn(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	FORCEINLINE ETeam GetTeam_Implementation() const
+	FORCEINLINE const ETeam GetTeam_Implementation() const
 	{
 		return Team;
 	}
@@ -138,11 +138,15 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
-	virtual void PostInitializeComponents() override;
+	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void RotateTurret(
 		const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed);
 	virtual void Fire();
 	virtual void DestroyActor(AActor* ActorToDestroy);
+
+	void SetMeshMaterial(
+		UStaticMeshComponent* MeshComponent, FName MeshMaterialSlotName, FName MaterialParameterName,
+		const FLinearColor& Color, UMaterialInstanceDynamic*& DynamicMaterialInstance);
 
 private:
 	UFUNCTION()
@@ -161,8 +165,4 @@ private:
 	
 	static TArray<FName> GetMaterialParameterOptions(
 		const UStaticMeshComponent* InputComponentParameter, FName MeshMaterialSlotName);
-
-	void SetMeshMaterial(
-		UStaticMeshComponent* MeshComponent, FName MeshMaterialSlotName, FName MaterialParameterName,
-		const FLinearColor& Color, UMaterialInstanceDynamic*& DynamicMaterialInstance);
 };

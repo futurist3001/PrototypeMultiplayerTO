@@ -15,12 +15,6 @@ class TOWEROFFENSE_API ATOMMGameModeBase : public AGameModeBase
 public:
 	ATOMMGameModeBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	UFUNCTION()
-	void StartGame();
-
-	UFUNCTION()
-	void QuitGame();
-
 	UFUNCTION(Exec, Category = "Levels")
 	void OpenRelativeLevelCC(int32 LevelIndex) const; // Console command
 };
