@@ -4,14 +4,27 @@
 #include "Components/TextBlock.h"
 #include "TowerOffense/Public/Gameplay/ModeControl/TOPlayerController.h"
 
-void UTOWinLoseWidget::SetEndGameStateTextColor(EGamePhase EndGameState)
+void UTOWinLoseWidget::SetEndGameStateTextColor(EGamePhase EndGamePhase)
 {
 	if (EndGameStateText)
 	{
- 		const FString RealEndGameStateString = UEnum::GetDisplayValueAsText(EndGameState).ToString();
+ 		const FString RealEndGameStateString = UEnum::GetDisplayValueAsText(EndGamePhase).ToString();
 		EndGameStateText->SetText(FText::FromString(RealEndGameStateString));
 
-		const FColor Color = EndGameState == EGamePhase::Win ? FColor::Green : FColor::Red;
+		FColor Color;
+
+		if (EndGamePhase == EGamePhase::FirstTeamWin || EndGamePhase == EGamePhase::SecondTeamWin ||
+			EndGamePhase == EGamePhase::ThirdTeamWin || EndGamePhase == EGamePhase::FourthTeamWin)
+		{
+			Color = FColor::Green;
+		}
+
+		else if (EndGamePhase == EGamePhase::FirstTeamLose || EndGamePhase == EGamePhase::SecondTeamLose ||
+			EndGamePhase == EGamePhase::ThirdTeamLose || EndGamePhase == EGamePhase::FourthTeamLose)
+		{
+			Color = FColor::Red;
+		}
+
 		EndGameStateText->SetColorAndOpacity(FSlateColor(Color));
 	}
 }

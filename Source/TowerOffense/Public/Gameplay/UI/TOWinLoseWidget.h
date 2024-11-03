@@ -29,7 +29,7 @@ protected:
 	TObjectPtr<UButton> QuitButton; // change to Menu
 
 public:
-	void SetEndGameStateTextColor(EGamePhase EndGameState);
+	void SetEndGameStateTextColor(EGamePhase EndGamePhase);
 
 protected:
 	virtual void NativeConstruct() override;

@@ -460,6 +460,8 @@ void ATankPawn::Aiming(const FInputActionValue& Value)
 
 void ATankPawn::ChangeTeam(ETeam TeamChange)
 {
+	ATOPlayerController* TOPlayerController = GetWorld()->GetFirstPlayerController<ATOPlayerController>();
+	TOPlayerController->PlayerTeam = TeamChange;
 	Team = TeamChange;
 	
 	SetMeshMaterial(
@@ -475,6 +477,9 @@ void ATankPawn::ChangeTeam(ETeam TeamChange)
 
 void ATankPawn::Server_ChangeTeam_Implementation(ETeam TeamChange)
 {
+	ATOPlayerController* TOPlayerController = GetWorld()->GetFirstPlayerController<ATOPlayerController>();
+	TOPlayerController->PlayerTeam = TeamChange;
+
 	Multicast_ChangeTeam(TeamChange);
 }
 
@@ -489,6 +494,11 @@ void ATankPawn::Multicast_ChangeTeam_Implementation(ETeam TeamChange)
 	SetMeshMaterial(
 		TurretMesh, TurretMeshMaterialSlotName, TurretMaterialParameterName,
 		UMyBlueprintFunctionLibrary::GetTeamColor(Team), TurretDynamicMaterialInstance);
+
+	if (GetLocalRole() == ROLE_Authority)
+	{
+		OnChangeTeam.Broadcast();
+	}
 }
 
 void ATankPawn::BeginPlay()

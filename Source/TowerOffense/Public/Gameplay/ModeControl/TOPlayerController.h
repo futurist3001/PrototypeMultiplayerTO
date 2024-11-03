@@ -19,6 +19,7 @@ class TOWEROFFENSE_API ATOPlayerController : public APlayerController
 	
 public:
 	float HandleTime; // For delay preparation
+	ETeam PlayerTeam;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
@@ -54,8 +55,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX")
 	TObjectPtr<USoundBase> GameBackMusic;
 
-	ETeam PlayerTeam;
-
 private:
 	FTimerHandle TimerHandle;
 
@@ -72,7 +71,6 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
-	virtual void OnPossess(APawn* InPawn) override;
 
 	void CreateScopeWidget();
 
@@ -98,4 +96,5 @@ private:
 
 	UFUNCTION()
 	void CreateWinLoseWidget(EGamePhase EndGamePhase);
+	void LogicCreateWinLoseWidget(EGamePhase EndGamePhase);
 };

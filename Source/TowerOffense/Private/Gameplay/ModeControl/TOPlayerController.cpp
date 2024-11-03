@@ -42,6 +42,11 @@ void ATOPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (ATankPawn* TankPawn = Cast<ATankPawn>(GetPawn()))
+	{
+		PlayerTeam = TankPawn->Execute_GetTeam(TankPawn);
+	}
+
 	if (GameBackMusic)
 	{
 		UGameplayStatics::PlaySound2D(GetWorld(), GameBackMusic);
@@ -86,16 +91,6 @@ void ATOPlayerController::Tick(float DeltaTime)
 	if (HUDWidget)
 	{
 		UpdateHUDEnergy();
-	}
-}
-
-void ATOPlayerController::OnPossess(APawn* InPawn)
-{
-	Super::OnPossess(InPawn);
-
-	if (ATankPawn* TankPawn = Cast<ATankPawn>(InPawn))
-	{
-		PlayerTeam = TankPawn->Execute_GetTeam(TankPawn);
 	}
 }
 
@@ -212,39 +207,89 @@ void ATOPlayerController::LimitPlayerMovement()
 
 void ATOPlayerController::CreateWinLoseWidget(EGamePhase EndGamePhase)
 {
-	if ((GetWorld() && !GetWorld()->bIsTearingDown)
-		&& (EndGamePhase == EGamePhase::Win || EndGamePhase == EGamePhase::Lose))
+	if (GetWorld() && !GetWorld()->bIsTearingDown && EndGamePhase != EGamePhase::Playing && GetLocalRole() == ROLE_AutonomousProxy)
 	{
-		if (GetLocalRole() != ROLE_Authority)
+		if (PlayerTeam == ETeam::Team1)
 		{
-			if (YouAreDeadWidget)
+			if (EndGamePhase == EGamePhase::FirstTeamWin)
 			{
-				YouAreDeadWidget->RemoveFromParent();
-				YouAreDeadWidget = nullptr;
+				LogicCreateWinLoseWidget(EndGamePhase);
 			}
 
-			if (HUDWidget)
+			else
 			{
-				HUDWidget->RemoveFromParent();
-				HUDWidget = nullptr;
+				LogicCreateWinLoseWidget(EGamePhase::FirstTeamLose);
 			}
-
-			if (ScopeWidget)
-			{
-				ScopeWidget->RemoveFromParent();
-				ScopeWidget = nullptr;
-			}
-
-			WinLoseWidget = CreateWidget<UTOWinLoseWidget>(this, WinLoseWidgetClass);
-			WinLoseWidget->SetEndGameStateTextColor(EndGamePhase);
-			WinLoseWidget->AddToViewport();
-			WinLoseWidget->SetVisibility(ESlateVisibility::Visible);
-			LimitPlayerMovement();
 		}
 
-		if (GetLocalRole() == ROLE_Authority)
+		else if (PlayerTeam == ETeam::Team2)
 		{
-			UGameplayStatics::SetGamePaused(GetWorld(), true); // this isn`t working
+			if (EndGamePhase == EGamePhase::SecondTeamWin)
+			{
+				LogicCreateWinLoseWidget(EndGamePhase);
+			}
+
+			else
+			{
+				LogicCreateWinLoseWidget(EGamePhase::SecondTeamLose);
+			}
 		}
+
+		else if (PlayerTeam == ETeam::Team3)
+		{
+			if (EndGamePhase == EGamePhase::ThirdTeamWin)
+			{
+				LogicCreateWinLoseWidget(EndGamePhase);
+			}
+
+			else
+			{
+				LogicCreateWinLoseWidget(EGamePhase::ThirdTeamLose);
+			}
+		}
+
+		else if (PlayerTeam == ETeam::Team4)
+		{
+			if (EndGamePhase == EGamePhase::FourthTeamWin)
+			{
+				LogicCreateWinLoseWidget(EndGamePhase);
+			}
+			
+			else
+			{
+				LogicCreateWinLoseWidget(EGamePhase::FourthTeamLose);
+			}
+		}
+
+	}
+}
+
+void ATOPlayerController::LogicCreateWinLoseWidget(EGamePhase EndGamePhase)
+{
+	if (GetLocalRole() != ROLE_Authority)
+	{
+		if (YouAreDeadWidget)
+		{
+			YouAreDeadWidget->RemoveFromParent();
+			YouAreDeadWidget = nullptr;
+		}
+
+		if (HUDWidget)
+		{
+			HUDWidget->RemoveFromParent();
+			HUDWidget = nullptr;
+		}
+
+		if (ScopeWidget)
+		{
+			ScopeWidget->RemoveFromParent();
+			ScopeWidget = nullptr;
+		}
+
+		WinLoseWidget = CreateWidget<UTOWinLoseWidget>(this, WinLoseWidgetClass);
+		WinLoseWidget->SetEndGameStateTextColor(EndGamePhase);
+		WinLoseWidget->AddToViewport();
+		WinLoseWidget->SetVisibility(ESlateVisibility::Visible);
+		LimitPlayerMovement();
 	}
 }

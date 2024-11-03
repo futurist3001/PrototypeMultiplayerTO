@@ -20,6 +20,10 @@ class TOWEROFFENSE_API ATankPawn : public ATurretPawn
 {
 	GENERATED_BODY()
 
+public:
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnChangeTeam);
+	FOnChangeTeam OnChangeTeam;
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<USpringArmComponent> SpringArmComponent;

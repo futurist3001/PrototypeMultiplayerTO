@@ -32,7 +32,6 @@ ATurretPawn::ATurretPawn(const FObjectInitializer& ObjectInitializer)
 
 	bIsRotate = false;
 	TurretRotationSpeed = 1.f;
-	Team = ETeam::Team1;
 	DeathEfect = nullptr;
 	FireEfect = nullptr;
 
@@ -115,9 +114,12 @@ void ATurretPawn::SetMeshMaterial(
 			const int32 MaterialIndex = MeshComponent->GetMaterialIndex(MeshMaterialSlotName);
 			UMaterialInterface* Material = MeshComponent->GetMaterial(MaterialIndex);
 
-			DynamicMaterialInstance = UMaterialInstanceDynamic::Create(Material, this);
-			DynamicMaterialInstance->SetVectorParameterValue(MaterialParameterName, Color);
-			MeshComponent->SetMaterial(MaterialIndex, DynamicMaterialInstance);
+			if (Material && !Material->IsA<UMaterialInstanceDynamic>())
+			{
+				DynamicMaterialInstance = UMaterialInstanceDynamic::Create(Material, this);
+				DynamicMaterialInstance->SetVectorParameterValue(MaterialParameterName, Color);
+				MeshComponent->SetMaterial(MaterialIndex, DynamicMaterialInstance);
+			}
 		}
 	}
 }

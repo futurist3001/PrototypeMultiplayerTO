@@ -48,11 +48,13 @@ protected:
 	virtual void BeginPlay() override;
 
 	void InitPlayData();
+
+	UFUNCTION()
 	void AlternativeInitPlayData();
 	void PostponeInitilize();
 
-	void Win();
-	void Lose();
+	//void Win();
+	//void Lose();
 
 	void SetEndGameState(EGamePhase Phase);
 
@@ -61,6 +63,7 @@ private:
 	void TankDestroyed(AActor* DestroyedActor);
 	UFUNCTION()
 	void AlternativeTankDestroyed(AActor* DestroyedActor);
+	void AlternativeWinCase();
 
 	UFUNCTION()
 	void TowerDestroyed(AActor* DestroyedActor);

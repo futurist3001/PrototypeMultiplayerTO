@@ -15,6 +15,11 @@ ATOGameModeBase::ATOGameModeBase(const FObjectInitializer& ObjectInitializer)
 
 	NumberTowers = 0;
 	NumberTanks = 0;
+
+	FirstTeamPlayers = 0;
+	SecondTeamPlayers = 0;
+	ThirdTeamPlayers = 0;
+	FourthTeamPlayers = 0;
 }
 
 void ATOGameModeBase::OpenRelativeLevelCC(int32 LevelIndex) const
@@ -68,6 +73,11 @@ void ATOGameModeBase::AlternativeInitPlayData()
 	TArray<AActor*> Tanks;
 	UGameplayStatics::GetAllActorsOfClass(this, ATankPawn::StaticClass(), Tanks);
 
+	FirstTeamPlayers = 0;
+	SecondTeamPlayers = 0;
+	ThirdTeamPlayers = 0;
+	FourthTeamPlayers = 0; // in case for update when changes team for players
+
 	for (AActor* Tank : Tanks)
 	{
 		if (ATankPawn* TankPlayer = Cast<ATankPawn>(Tank))
@@ -94,7 +104,10 @@ void ATOGameModeBase::AlternativeInitPlayData()
 					break;
 			}
 
-			TankPlayer->OnDestroyed.AddDynamic(this, &ATOGameModeBase::AlternativeTankDestroyed);
+			if (!TankPlayer->OnDestroyed.Contains(this, "AlternativeTankDestroyed"))
+			{
+				TankPlayer->OnDestroyed.AddDynamic(this, &ATOGameModeBase::AlternativeTankDestroyed);
+			}
 		}
 	}
 }
@@ -103,8 +116,18 @@ void ATOGameModeBase::PostponeInitilize()
 {
 	if (ATOGameStateBase* TOGameState = GetGameState<ATOGameStateBase>())
 	{
-		InitPlayData();
+		//InitPlayData();
 		AlternativeInitPlayData();
+
+		TArray<AActor*> Tanks;
+		UGameplayStatics::GetAllActorsOfClass(this, ATankPawn::StaticClass(), Tanks);
+		for (AActor* Tank : Tanks)
+		{
+			if (ATankPawn* TankPawn = Cast<ATankPawn>(Tank); !TankPawn->OnChangeTeam.IsBound())
+			{
+				TankPawn->OnChangeTeam.AddDynamic(this, &ATOGameModeBase::AlternativeInitPlayData);
+			}
+		}
 
 		TOGameState->SetNumberTowers(NumberTowers);
 		TOGameState->SetNumberTanks(NumberTanks);
@@ -150,7 +173,7 @@ void ATOGameModeBase::GameStarted()
 	}
 }
 
-void ATOGameModeBase::Win()
+/*void ATOGameModeBase::Win()
 {
 	SetEndGameState(EGamePhase::Win);
 
@@ -162,7 +185,7 @@ void ATOGameModeBase::Win()
 void ATOGameModeBase::Lose()
 {
 	SetEndGameState(EGamePhase::Lose);
-}
+}*/
 
 void ATOGameModeBase::SetEndGameState(EGamePhase Phase)
 {
@@ -172,7 +195,7 @@ void ATOGameModeBase::SetEndGameState(EGamePhase Phase)
 	{
 		TOGameState->SetGamePhase(Phase);
 
-		if (Phase == EGamePhase::Lose || Phase == EGamePhase::Win)
+		if (Phase != EGamePhase::Preparation || Phase != EGamePhase::Playing)
 		{
 			TOGameState->OnGamePhaseChanged.Broadcast(Phase); // Broadcast on server side for correct pause game at the end
 		}
@@ -185,43 +208,78 @@ void ATOGameModeBase::TankDestroyed(AActor* DestroyedActor)
 
 	if (--NumberTanks < 1 && TOGameState->GetGamePhase() == EGamePhase::Playing)
 	{
-		Lose();
+		//Lose();
 	}
 
-	TOGameState->SetNumberTanks(NumberTanks);
+	TOGameState->SetNumberTanks(NumberTanks); // think about transfer this to alternative version
 }
 
 void ATOGameModeBase::AlternativeTankDestroyed(AActor* DestroyedActor)
 {
 	if (ATankPawn* TankPawn = Cast<ATankPawn>(DestroyedActor))
 	{
+		ATOGameStateBase* TOGameState = GetGameState<ATOGameStateBase>();
+
 		switch (TankPawn->Execute_GetTeam(TankPawn))
 		{
 			case ETeam::Team1:
 				--FirstTeamPlayers;
+				break;
 
 			case ETeam::Team2:
 				--SecondTeamPlayers;
+				break;
 
 			case ETeam::Team3:
 				--ThirdTeamPlayers;
+				break;
 
 			case ETeam::Team4:
 				--FourthTeamPlayers;
+				break;
 
 			default:
 				break;
 		}
+
+		AlternativeWinCase();
 	}
 }
 
-void ATOGameModeBase::TowerDestroyed(AActor* DestroyedActor)
+void ATOGameModeBase::AlternativeWinCase()
+{
+	if (FirstTeamPlayers >= 1 && SecondTeamPlayers <= 0 &&
+		ThirdTeamPlayers <= 0 && FourthTeamPlayers <= 0)
+	{
+		SetEndGameState(EGamePhase::FirstTeamWin);
+	}
+
+	else if (SecondTeamPlayers >= 1 && FirstTeamPlayers <= 0 &&
+		ThirdTeamPlayers <= 0 && FourthTeamPlayers <= 0)
+	{
+		SetEndGameState(EGamePhase::SecondTeamWin);
+	}
+
+	else if (ThirdTeamPlayers >= 1 && FirstTeamPlayers <= 0 &&
+		SecondTeamPlayers <= 0 && FourthTeamPlayers <= 0)
+	{
+		SetEndGameState(EGamePhase::ThirdTeamWin);
+	}
+
+	else if (FourthTeamPlayers >= 1 && FirstTeamPlayers <= 0 &&
+		SecondTeamPlayers <= 0 && ThirdTeamPlayers <= 0)
+	{
+		SetEndGameState(EGamePhase::FourthTeamWin);
+	}
+}
+
+void ATOGameModeBase::TowerDestroyed(AActor* DestroyedActor) // it`s not important
 {
 	ATOGameStateBase* TOGameState = GetGameState<ATOGameStateBase>();
 
  	if (--NumberTowers < 1 && TOGameState->GetGamePhase() == EGamePhase::Playing)
 	{
- 		Win();
+ 		//Win();
 	}
 
 	TOGameState->SetNumberTowers(NumberTowers);

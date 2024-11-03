@@ -22,7 +22,7 @@ void ATOGameStateBase::SetGamePhase(EGamePhase NewPhase)
 	}
 }
 
-void ATOGameStateBase::SetNumberTowers(int32 Towers)
+void ATOGameStateBase::SetNumberTowers(int32 Towers) // it`s not necessary
 {
 	if (HasAuthority())
 	{

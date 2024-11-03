@@ -10,8 +10,16 @@ enum class EGamePhase : uint8
 {
 	Preparation,
 	Playing,
-	Win,
-	Lose
+	//Win,
+	//Lose
+	FirstTeamLose,
+	SecondTeamLose,
+	ThirdTeamLose,
+	FourthTeamLose,
+	FirstTeamWin,
+	SecondTeamWin,
+	ThirdTeamWin,
+	FourthTeamWin
 };
 
 UCLASS()
@@ -42,7 +50,17 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_NumberTowers)
 	int32 NumberTowersState;
 
-	
+	UPROPERTY()
+	int32 FirstTeamPlayers;
+
+	UPROPERTY()
+	int32 SecondTeamPlayers;
+
+	UPROPERTY()
+	int32 ThirdTeamPlayers;
+
+	UPROPERTY()
+	int32 FourthTeamPlayers;
 
 public:
 	ATOGameStateBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
