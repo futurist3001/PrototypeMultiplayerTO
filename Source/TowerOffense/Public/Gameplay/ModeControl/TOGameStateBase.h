@@ -10,8 +10,6 @@ enum class EGamePhase : uint8
 {
 	Preparation,
 	Playing,
-	//Win,
-	//Lose
 	FirstTeamLose,
 	SecondTeamLose,
 	ThirdTeamLose,
@@ -29,14 +27,17 @@ class TOWEROFFENSE_API ATOGameStateBase : public AGameStateBase
 
 public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGamePhaseChanged, EGamePhase, DelEndGameState);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTowerDestroyed, int32, TowersRemain);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTankDestroyed, int32, TanksRemain);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFirstTeamTankDestroyed, int32, TanksRemain);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSecondTeamTankDestroyed, int32, TanksRemain);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnThirdTeamTankDestroyed, int32, TanksRemain);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFourthTeamTankDestroyed, int32, TanksRemain);
 
 	UPROPERTY(BlueprintAssignable)
 	FOnGamePhaseChanged OnGamePhaseChanged;
-
-	FOnTowerDestroyed OnTowerDestroyed;
-	FOnTankDestroyed OnTankDestroyed;
+	FOnFirstTeamTankDestroyed OnFirstTeamTankDestroyed;
+	FOnSecondTeamTankDestroyed OnSecondTeamTankDestroyed;
+	FOnThirdTeamTankDestroyed OnThirdTeamTankDestroyed;
+	FOnFourthTeamTankDestroyed OnFourthTeamTankDestroyed;
 
 	UPROPERTY(ReplicatedUsing=OnRep_GamePhase, BlueprintReadOnly, Category = "GameState")
 	EGamePhase GamePhase;
@@ -44,22 +45,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName MainMenuMapName;
 
-	UPROPERTY(ReplicatedUsing=OnRep_NumberTanks)
-	int32 NumberTanksState;
-
-	UPROPERTY(ReplicatedUsing = OnRep_NumberTowers)
-	int32 NumberTowersState;
-
-	UPROPERTY()
+	UPROPERTY(ReplicatedUsing = OnRep_FirstTeamPlayers)
 	int32 FirstTeamPlayers;
 
-	UPROPERTY()
+	UPROPERTY(ReplicatedUsing = OnRep_SecondTeamPlayers)
 	int32 SecondTeamPlayers;
 
-	UPROPERTY()
+	UPROPERTY(ReplicatedUsing = OnRep_ThirdTeamPlayers)
 	int32 ThirdTeamPlayers;
 
-	UPROPERTY()
+	UPROPERTY(ReplicatedUsing = OnRep_FourthTeamPlayers)
 	int32 FourthTeamPlayers;
 
 public:
@@ -72,17 +67,25 @@ public:
 		return GamePhase;
 	}
 
-	void SetNumberTowers(int32 Towers);
-	void SetNumberTanks(int32 Tanks);
+	void SetNumberFirstTeamPlayers(int32 FirstTeam);
+	void SetNumberSecondTeamPlayers(int32 SecondTeam);
+	void SetNumberThirdTeamPlayers(int32 ThirdTeam);
+	void SetNumberFourthTeamPlayers(int32 FourthTeam);
 
 	UFUNCTION()
 	void OnRep_GamePhase();
 
 	UFUNCTION()
-	void OnRep_NumberTanks();
+	void OnRep_FirstTeamPlayers();
 
 	UFUNCTION()
-	void OnRep_NumberTowers();
+	void OnRep_SecondTeamPlayers();
+
+	UFUNCTION()
+	void OnRep_ThirdTeamPlayers();
+
+	UFUNCTION()
+	void OnRep_FourthTeamPlayers();
 
 protected:
 

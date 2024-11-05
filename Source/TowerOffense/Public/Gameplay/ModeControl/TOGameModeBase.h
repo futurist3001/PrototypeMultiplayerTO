@@ -32,8 +32,6 @@ private:
 	int32 SecondTeamPlayers;
 	int32 ThirdTeamPlayers;
 	int32 FourthTeamPlayers;
-	int32 NumberTowers; // it`s not necessary
-	int32 NumberTanks; // it`s not necessary
 	uint8 bIsGameStarted : 1;
 
 public:
@@ -46,25 +44,15 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-
-	void InitPlayData();
+	virtual void PostLogin(APlayerController* NewPlayerController) override;
 
 	UFUNCTION()
 	void AlternativeInitPlayData();
-	void PostponeInitilize();
-
-	//void Win();
-	//void Lose();
 
 	void SetEndGameState(EGamePhase Phase);
 
 private:
 	UFUNCTION()
-	void TankDestroyed(AActor* DestroyedActor);
-	UFUNCTION()
 	void AlternativeTankDestroyed(AActor* DestroyedActor);
 	void AlternativeWinCase();
-
-	UFUNCTION()
-	void TowerDestroyed(AActor* DestroyedActor);
 };

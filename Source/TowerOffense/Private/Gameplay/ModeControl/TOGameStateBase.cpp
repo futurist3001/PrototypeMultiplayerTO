@@ -22,19 +22,35 @@ void ATOGameStateBase::SetGamePhase(EGamePhase NewPhase)
 	}
 }
 
-void ATOGameStateBase::SetNumberTowers(int32 Towers) // it`s not necessary
+void ATOGameStateBase::SetNumberFirstTeamPlayers(int32 FirstTeam)
 {
 	if (HasAuthority())
 	{
-		NumberTowersState = Towers;
+		FirstTeamPlayers = FirstTeam;
 	}
 }
 
-void ATOGameStateBase::SetNumberTanks(int32 Tanks)
+void ATOGameStateBase::SetNumberSecondTeamPlayers(int32 SecondTeam)
 {
 	if (HasAuthority())
 	{
-		NumberTanksState = Tanks;
+		SecondTeamPlayers = SecondTeam;
+	}
+}
+
+void ATOGameStateBase::SetNumberThirdTeamPlayers(int32 ThirdTeam)
+{
+	if (HasAuthority())
+	{
+		ThirdTeamPlayers = ThirdTeam;
+	}
+}
+
+void ATOGameStateBase::SetNumberFourthTeamPlayers(int32 FourthTeam)
+{
+	if (HasAuthority())
+	{
+		FourthTeamPlayers = FourthTeam;
 	}
 }
 
@@ -46,19 +62,35 @@ void ATOGameStateBase::OnRep_GamePhase()
 	}
 }
 
-void ATOGameStateBase::OnRep_NumberTanks()
+void ATOGameStateBase::OnRep_FirstTeamPlayers()
 {
-	if (OnTankDestroyed.IsBound())
+	if (OnFirstTeamTankDestroyed.IsBound())
 	{
-		OnTankDestroyed.Broadcast(NumberTanksState);
+		OnFirstTeamTankDestroyed.Broadcast(FirstTeamPlayers);
 	}
 }
 
-void ATOGameStateBase::OnRep_NumberTowers()
+void ATOGameStateBase::OnRep_SecondTeamPlayers()
 {
-	if (OnTowerDestroyed.IsBound())
+	if (OnSecondTeamTankDestroyed.IsBound())
 	{
-		OnTowerDestroyed.Broadcast(NumberTowersState);
+		OnSecondTeamTankDestroyed.Broadcast(SecondTeamPlayers);
+	}
+}
+
+void ATOGameStateBase::OnRep_ThirdTeamPlayers()
+{
+	if (OnThirdTeamTankDestroyed.IsBound())
+	{
+		OnThirdTeamTankDestroyed.Broadcast(ThirdTeamPlayers);
+	}
+}
+
+void ATOGameStateBase::OnRep_FourthTeamPlayers()
+{
+	if (OnFourthTeamTankDestroyed.IsBound())
+	{
+		OnFourthTeamTankDestroyed.Broadcast(FourthTeamPlayers);
 	}
 }
 
@@ -67,6 +99,9 @@ void ATOGameStateBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ATOGameStateBase, GamePhase);
-	DOREPLIFETIME(ATOGameStateBase, NumberTanksState);
-	DOREPLIFETIME(ATOGameStateBase, NumberTowersState);
+
+	DOREPLIFETIME(ATOGameStateBase, FirstTeamPlayers);
+	DOREPLIFETIME(ATOGameStateBase, SecondTeamPlayers);
+	DOREPLIFETIME(ATOGameStateBase, ThirdTeamPlayers);
+	DOREPLIFETIME(ATOGameStateBase, FourthTeamPlayers);
 }

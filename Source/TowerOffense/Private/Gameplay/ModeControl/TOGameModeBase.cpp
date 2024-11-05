@@ -13,9 +13,6 @@ ATOGameModeBase::ATOGameModeBase(const FObjectInitializer& ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	NumberTowers = 0;
-	NumberTanks = 0;
-
 	FirstTeamPlayers = 0;
 	SecondTeamPlayers = 0;
 	ThirdTeamPlayers = 0;
@@ -39,33 +36,28 @@ void ATOGameModeBase::BeginPlay()
 		TOGameState->SetGamePhase(EGamePhase::Preparation);
 	}
 
-	FTimerHandle PostponeInitilezeTimer;
-	GetWorldTimerManager().SetTimer(
-		PostponeInitilezeTimer, this, &ThisClass::PostponeInitilize, 1.5f, false);
-
 	ULevelSystem* LevelSystem = GEngine->GetEngineSubsystem<ULevelSystem>();
 
-	UKismetSystemLibrary::PrintString(this, FString::Printf(
+	/*UKismetSystemLibrary::PrintString(this, FString::Printf(
 			TEXT("Current Level: %d"), LevelSystem->ActualCurrentLevel),
-		true, false, FColor::Purple, 4.f);
+		true, false, FColor::Purple, 4.f);*/
 }
 
-void ATOGameModeBase::InitPlayData()
+void ATOGameModeBase::PostLogin(APlayerController* NewPlayerController)
 {
-#define INIT_PLAY_DATA(Class, Count, Method)                        \
-	do {                                                            \
-		TArray<AActor*> Actors;                                     \
-		UGameplayStatics::GetAllActorsOfClass(this, Class, Actors); \
-		Count = Actors.Num();                                       \
-		for (AActor* Actor : Actors)                                \
-		{                                                           \
-			Actor->OnDestroyed.AddDynamic(this, Method);            \
-		}                                                           \
-	} while (0)
+	Super::PostLogin(NewPlayerController);
 
-	INIT_PLAY_DATA(ATowerPawn::StaticClass(), NumberTowers, &ATOGameModeBase::TowerDestroyed);
-	INIT_PLAY_DATA(ATankPawn::StaticClass(), NumberTanks, &ATOGameModeBase::TankDestroyed);
-#undef INIT_PLAY_DATA
+	AlternativeInitPlayData();
+
+	TArray<AActor*> Tanks;
+	UGameplayStatics::GetAllActorsOfClass(this, ATankPawn::StaticClass(), Tanks);
+	for (AActor* Tank : Tanks)
+	{
+		if (ATankPawn* TankPawn = Cast<ATankPawn>(Tank); !TankPawn->OnChangeTeam.IsBound())
+		{
+			TankPawn->OnChangeTeam.AddDynamic(this, &ATOGameModeBase::AlternativeInitPlayData);
+		}
+	}
 }
 
 void ATOGameModeBase::AlternativeInitPlayData()
@@ -108,29 +100,15 @@ void ATOGameModeBase::AlternativeInitPlayData()
 			{
 				TankPlayer->OnDestroyed.AddDynamic(this, &ATOGameModeBase::AlternativeTankDestroyed);
 			}
-		}
-	}
-}
 
-void ATOGameModeBase::PostponeInitilize()
-{
-	if (ATOGameStateBase* TOGameState = GetGameState<ATOGameStateBase>())
-	{
-		//InitPlayData();
-		AlternativeInitPlayData();
-
-		TArray<AActor*> Tanks;
-		UGameplayStatics::GetAllActorsOfClass(this, ATankPawn::StaticClass(), Tanks);
-		for (AActor* Tank : Tanks)
-		{
-			if (ATankPawn* TankPawn = Cast<ATankPawn>(Tank); !TankPawn->OnChangeTeam.IsBound())
+			if (ATOGameStateBase* TOGameState = GetGameState<ATOGameStateBase>())
 			{
-				TankPawn->OnChangeTeam.AddDynamic(this, &ATOGameModeBase::AlternativeInitPlayData);
+				TOGameState->SetNumberFirstTeamPlayers(FirstTeamPlayers);
+				TOGameState->SetNumberSecondTeamPlayers(SecondTeamPlayers);
+				TOGameState->SetNumberThirdTeamPlayers(ThirdTeamPlayers);
+				TOGameState->SetNumberFourthTeamPlayers(FourthTeamPlayers);
 			}
 		}
-
-		TOGameState->SetNumberTowers(NumberTowers);
-		TOGameState->SetNumberTanks(NumberTanks);
 	}
 }
 
@@ -173,20 +151,6 @@ void ATOGameModeBase::GameStarted()
 	}
 }
 
-/*void ATOGameModeBase::Win()
-{
-	SetEndGameState(EGamePhase::Win);
-
-	ULevelSystem* LevelSystem = GEngine->GetEngineSubsystem<ULevelSystem>();
-	LevelSystem->OpenNextLevel(GetWorld(), LevelSystem->ActualCurrentLevel + 1);
-	LevelSystem->SaveLevelState();
-}
-
-void ATOGameModeBase::Lose()
-{
-	SetEndGameState(EGamePhase::Lose);
-}*/
-
 void ATOGameModeBase::SetEndGameState(EGamePhase Phase)
 {
 	ATOGameStateBase* TOGameState = GetGameState<ATOGameStateBase>();
@@ -202,18 +166,6 @@ void ATOGameModeBase::SetEndGameState(EGamePhase Phase)
 	}
 }
 
-void ATOGameModeBase::TankDestroyed(AActor* DestroyedActor)
-{
-	ATOGameStateBase* TOGameState = GetGameState<ATOGameStateBase>();
-
-	if (--NumberTanks < 1 && TOGameState->GetGamePhase() == EGamePhase::Playing)
-	{
-		//Lose();
-	}
-
-	TOGameState->SetNumberTanks(NumberTanks); // think about transfer this to alternative version
-}
-
 void ATOGameModeBase::AlternativeTankDestroyed(AActor* DestroyedActor)
 {
 	if (ATankPawn* TankPawn = Cast<ATankPawn>(DestroyedActor))
@@ -224,18 +176,22 @@ void ATOGameModeBase::AlternativeTankDestroyed(AActor* DestroyedActor)
 		{
 			case ETeam::Team1:
 				--FirstTeamPlayers;
+				TOGameState->SetNumberFirstTeamPlayers(FirstTeamPlayers);
 				break;
 
 			case ETeam::Team2:
 				--SecondTeamPlayers;
+				TOGameState->SetNumberSecondTeamPlayers(SecondTeamPlayers);
 				break;
 
 			case ETeam::Team3:
 				--ThirdTeamPlayers;
+				TOGameState->SetNumberThirdTeamPlayers(ThirdTeamPlayers);
 				break;
 
 			case ETeam::Team4:
 				--FourthTeamPlayers;
+				TOGameState->SetNumberFourthTeamPlayers(FourthTeamPlayers);
 				break;
 
 			default:
@@ -271,16 +227,4 @@ void ATOGameModeBase::AlternativeWinCase()
 	{
 		SetEndGameState(EGamePhase::FourthTeamWin);
 	}
-}
-
-void ATOGameModeBase::TowerDestroyed(AActor* DestroyedActor) // it`s not important
-{
-	ATOGameStateBase* TOGameState = GetGameState<ATOGameStateBase>();
-
- 	if (--NumberTowers < 1 && TOGameState->GetGamePhase() == EGamePhase::Playing)
-	{
- 		//Win();
-	}
-
-	TOGameState->SetNumberTowers(NumberTowers);
 }

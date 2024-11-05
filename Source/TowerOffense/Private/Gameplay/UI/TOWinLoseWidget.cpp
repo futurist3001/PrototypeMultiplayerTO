@@ -36,5 +36,5 @@ void UTOWinLoseWidget::NativeConstruct()
 	ATOPlayerController* PlayerController = GetWorld()->GetFirstPlayerController<ATOPlayerController>();
 
 	RestartButton->OnClicked.AddDynamic(PlayerController, &ATOPlayerController::Restart);
-	QuitButton->OnClicked.AddDynamic(PlayerController, &ATOPlayerController::ReturnToMainMenu);
+	MenuButton->OnClicked.AddDynamic(PlayerController, &ATOPlayerController::ReturnToMainMenu);
 }

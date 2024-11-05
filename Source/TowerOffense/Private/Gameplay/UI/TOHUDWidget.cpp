@@ -20,23 +20,43 @@ void UTOHUDWidget::SetEnergy(float CurrentEnergy, float MaxEnergy)
 	}
 }
 
-void UTOHUDWidget::SetEnemiesText(int32 TowersRemain)
+void UTOHUDWidget::SetFirstTeamText(int32 FirstTeamTanksRemain)
 {
-	if (EnemiesTowersText)
+	if (FirstTeamText)
 	{
-		FString FormattedString = FString::Printf(TEXT("Towers remain: %d"), TowersRemain);
+		FString FormattedString = FString::Printf(TEXT("First team tanks remain: %d"), FirstTeamTanksRemain);
 
-		EnemiesTowersText->SetText(FText::FromString(FormattedString));
+		FirstTeamText->SetText(FText::FromString(FormattedString));
 	}
 }
 
-void UTOHUDWidget::SetAlliesText(int32 TanksRemain)
+void UTOHUDWidget::SetSecondTeamText(int32 SecondTeamTanksRemain)
 {
-	if (AlliesTanksText)
+	if (SecondTeamText)
 	{
-		FString FormattedString = FString::Printf(TEXT("Tanks remain: %d"), TanksRemain);
+		FString FormattedString = FString::Printf(TEXT("Second team tanks remain: %d"), SecondTeamTanksRemain);
 
-		AlliesTanksText->SetText(FText::FromString(FormattedString));
+		SecondTeamText->SetText(FText::FromString(FormattedString));
+	}
+}
+
+void UTOHUDWidget::SetThirdTeamText(int32 ThirdTeamTanksRemain)
+{
+	if (ThirdTeamText)
+	{
+		FString FormattedString = FString::Printf(TEXT("Third team tanks remain: %d"), ThirdTeamTanksRemain);
+
+		ThirdTeamText->SetText(FText::FromString(FormattedString));
+	}
+}
+
+void UTOHUDWidget::SetFourthTeamText(int32 FourthTeamTanksRemain)
+{
+	if (FourthTeamText)
+	{
+		FString FormattedString = FString::Printf(TEXT("Fourth team tanks remain: %d"), FourthTeamTanksRemain);
+
+		FourthTeamText->SetText(FText::FromString(FormattedString));
 	}
 }
 
@@ -46,10 +66,14 @@ void UTOHUDWidget::NativeConstruct()
 
 	if (ATOGameStateBase* GameState = GetWorld()->GetGameState<ATOGameStateBase>())
 	{
-		GameState->OnTowerDestroyed.AddDynamic(this, &UTOHUDWidget::SetEnemiesText);
-		GameState->OnTankDestroyed.AddDynamic(this, &UTOHUDWidget::SetAlliesText);
+		GameState->OnFirstTeamTankDestroyed.AddDynamic(this, &UTOHUDWidget::SetFirstTeamText);
+		GameState->OnSecondTeamTankDestroyed.AddDynamic(this, &UTOHUDWidget::SetSecondTeamText);
+		GameState->OnThirdTeamTankDestroyed.AddDynamic(this, &UTOHUDWidget::SetThirdTeamText);
+		GameState->OnFourthTeamTankDestroyed.AddDynamic(this, &UTOHUDWidget::SetFourthTeamText);
 
-		SetEnemiesText(GameState->NumberTowersState);
-		SetAlliesText(GameState->NumberTanksState);
+		SetFirstTeamText(GameState->FirstTeamPlayers);
+		SetSecondTeamText(GameState->SecondTeamPlayers);
+		SetThirdTeamText(GameState->ThirdTeamPlayers);
+		SetFourthTeamText(GameState->FourthTeamPlayers);
 	}
 }

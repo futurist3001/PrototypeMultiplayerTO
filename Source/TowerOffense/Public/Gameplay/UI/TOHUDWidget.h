@@ -21,20 +21,32 @@ public:
 	TObjectPtr<UProgressBar> EnergyBar;
 
 	UPROPERTY(EditAnywhere, meta = (BindWidget))
-	TObjectPtr<UTextBlock> EnemiesTowersText;
+	TObjectPtr<UTextBlock> FirstTeamText;
 
 	UPROPERTY(EditAnywhere, meta = (BindWidget))
-	TObjectPtr<UTextBlock> AlliesTanksText;
+	TObjectPtr<UTextBlock> SecondTeamText;
+
+	UPROPERTY(EditAnywhere, meta = (BindWidget))
+	TObjectPtr<UTextBlock> ThirdTeamText;
+
+	UPROPERTY(EditAnywhere, meta = (BindWidget))
+	TObjectPtr<UTextBlock> FourthTeamText;
 
 public:
 	void SetHealth(float CurrentHealth, float MaxHealth);
 	void SetEnergy(float CurrentEnergy, float MaxEnergy);
 
 	UFUNCTION()
-	void SetEnemiesText(int32 TowersRemain);
+	void SetFirstTeamText(int32 FirstTeamTanksRemain);
 
 	UFUNCTION()
-	void SetAlliesText(int32 TanksRemain);
+	void SetSecondTeamText(int32 SecondTeamTanksRemain);
+
+	UFUNCTION()
+	void SetThirdTeamText(int32 ThirdTeamTanksRemain);
+
+	UFUNCTION()
+	void SetFourthTeamText(int32 FourthTeamTanksRemain);
 
 protected:
 	virtual void NativeConstruct() override;

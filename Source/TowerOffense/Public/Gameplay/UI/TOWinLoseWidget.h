@@ -26,7 +26,7 @@ protected:
 	TObjectPtr<UButton> RestartButton;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> QuitButton; // change to Menu
+	TObjectPtr<UButton> MenuButton; // responsible for returning to home (rename it)
 
 public:
 	void SetEndGameStateTextColor(EGamePhase EndGamePhase);
