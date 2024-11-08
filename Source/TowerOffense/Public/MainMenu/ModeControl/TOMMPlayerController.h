@@ -15,12 +15,6 @@ class TOWEROFFENSE_API ATOMMPlayerController : public APlayerController
 	
 public:
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Levels")
-	TSubclassOf<UPageLevelWidget> PageLevelClass;
-	
-	UPROPERTY(Transient, BlueprintReadWrite, Category = "Levels")
-	TObjectPtr<UPageLevelWidget> PageLevelWidget;
-
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UTOMainMenuWidget> MainMenuWidgetClass;
@@ -32,9 +26,6 @@ protected:
 	TObjectPtr<USoundBase> MMBackSound;
 
 public:
-	UFUNCTION()
-	void CreatePageLevelWidget();
-
 	UFUNCTION()
 	void CreateMainMenuWidget();
 

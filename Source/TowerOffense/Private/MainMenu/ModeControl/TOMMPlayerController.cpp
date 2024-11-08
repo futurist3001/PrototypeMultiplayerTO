@@ -36,17 +36,3 @@ void ATOMMPlayerController::CreateMainMenuWidget()
 		MainMenuWidget->SetVisibility(ESlateVisibility::Visible);
 	}
 }
-
-void ATOMMPlayerController::CreatePageLevelWidget()
-{
-	if (PageLevelClass && GetLocalRole() != ROLE_Authority)
-	{
-		ULevelSystem* LevelSystem = GEngine->GetEngineSubsystem<ULevelSystem>();
-
-		PageLevelWidget = CreateWidget<UPageLevelWidget>(this, PageLevelClass);
-		PageLevelWidget->InitializePage(10, LevelSystem->GetNumberLevels());
-		PageLevelWidget->AddToViewport();
-		PageLevelWidget->SetVisibility(ESlateVisibility::Visible);
-		PageLevelWidget->PlayAnimationReverse(PageLevelWidget->InitializeAnimation);
-	}
-}

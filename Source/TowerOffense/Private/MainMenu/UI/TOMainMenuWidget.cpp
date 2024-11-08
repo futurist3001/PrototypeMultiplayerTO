@@ -3,20 +3,20 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Button.h"
 #include "Kismet/GameplayStatics.h"
-#include "TowerOffense/Public/MainMenu/ModeControl/TOMMPlayerController.h"
-#include "TowerOffense/Public/Generic/LevelSystem.h"
-
-void UTOMainMenuWidget::StartGame()
-{
-	ULevelSystem* LevelSystem = GEngine->GetEngineSubsystem<ULevelSystem>();
-	LevelSystem->OpenRelativeLevel(GetWorld(), 1);
-	UWidgetBlueprintLibrary::SetInputMode_GameOnly(GetWorld()->GetFirstPlayerController());
-}
+#include "TowerOffense/Public/MainMenu/TOGameInstance.h"
 
 void UTOMainMenuWidget::QuitGame()
 {
 	UKismetSystemLibrary::QuitGame(
 		GetWorld(), GetWorld()->GetFirstPlayerController(), EQuitPreference::Quit, false);
+
+	if (UTOGameInstance* GameInstance = GetGameInstance<UTOGameInstance>())
+	{
+		if (GameInstance->SessionInterface->GetNamedSession("My Session"))
+		{
+			GameInstance->SessionInterface->DestroySession("My Session");
+		}
+	}
 }
 
 void UTOMainMenuWidget::NativeConstruct()
@@ -28,17 +28,11 @@ void UTOMainMenuWidget::NativeConstruct()
 		PlayAnimationForward(MMSlideAnimation);
 	}
 
-	auto* PlayerController = GetWorld()->GetFirstPlayerController<ATOMMPlayerController>();
-	ULevelSystem* LevelSystem = GEngine->GetEngineSubsystem<ULevelSystem>();
-
-	StartGameButton->OnClicked.AddDynamic(this, &UTOMainMenuWidget::StartGame);
-	LevelButton->OnClicked.AddDynamic(PlayerController, &ATOMMPlayerController::CreatePageLevelWidget);
-	LevelButton->OnClicked.AddDynamic(this, &UTOMainMenuWidget::DestroyMMWidget);
-	ResetLevelAccessButton->OnClicked.AddDynamic(LevelSystem, &ULevelSystem::ResetLevelAccess);
+	if (UTOGameInstance* GameInstance = GetGameInstance<UTOGameInstance>())
+	{
+		CreateServerButton->OnClicked.AddDynamic(GameInstance, &UTOGameInstance::StartCreateServer);
+		
+		JoinServerButton->OnClicked.AddDynamic(GameInstance, &UTOGameInstance::StartJoinServer);
+	}
 	QuitGameButton->OnClicked.AddDynamic(this, &UTOMainMenuWidget::QuitGame);
-}
-
-void UTOMainMenuWidget::DestroyMMWidget()
-{
-	RemoveFromParent();
 }

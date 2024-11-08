@@ -6,7 +6,6 @@
 #include "TOMainMenuWidget.generated.h"
 
 class UButton;
-class UOverlay;
 class UTextBlock;
 
 UCLASS()
@@ -16,25 +15,13 @@ class TOWEROFFENSE_API UTOMainMenuWidget : public UUserWidget
 	
 protected:
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> StartGameButton;
+	TObjectPtr<UButton> CreateServerButton;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> TextStartGame;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> LevelButton;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> ResetLevelAccessButton;
+	TObjectPtr<UButton> JoinServerButton;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> QuitGameButton;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> TextQuitGame;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UOverlay> OverlayGameNameText;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> GameNameText;
@@ -44,15 +31,8 @@ protected:
 
 public:
 	UFUNCTION()
-	void StartGame();
-
-	UFUNCTION()
 	void QuitGame();
 
 protected:
 	virtual void NativeConstruct() override;
-
-private:
-	UFUNCTION()
-	void DestroyMMWidget();
 };

@@ -11,7 +11,7 @@ public class TowerOffense : ModuleRules
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore",
 			"EnhancedInput", "UMG", "GeometryCollectionEngine", "Niagara", "Json", "JsonUtilities", "Landscape",
-		"GameplayTasks", "AIModule"});
+		"GameplayTasks", "AIModule", "OnlineSubsystem", "OnlineSubsystemSteam"});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

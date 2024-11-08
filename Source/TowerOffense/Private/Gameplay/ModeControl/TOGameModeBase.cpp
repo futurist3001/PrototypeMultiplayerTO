@@ -7,6 +7,7 @@
 #include "TowerOffense/Public/Generic/LevelSystem.h"
 #include "TowerOffense/Public/Generic/UActorMoverComponent.h"
 #include "TowerOffense/Public/Generic/MeshMoverAlongSplineComponent.h"
+#include "TowerOffense/Public/MainMenu/TOGameInstance.h"
 
 ATOGameModeBase::ATOGameModeBase(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -56,6 +57,19 @@ void ATOGameModeBase::PostLogin(APlayerController* NewPlayerController)
 		if (ATankPawn* TankPawn = Cast<ATankPawn>(Tank); !TankPawn->OnChangeTeam.IsBound())
 		{
 			TankPawn->OnChangeTeam.AddDynamic(this, &ATOGameModeBase::AlternativeInitPlayData);
+		}
+	}
+}
+
+void ATOGameModeBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	if (UTOGameInstance* GameInstance = GetGameInstance<UTOGameInstance>()) // delete current session when end play
+	{
+		if (GameInstance->SessionInterface->GetNamedSession("My Session"))
+		{
+			GameInstance->SessionInterface->DestroySession("My Session");
 		}
 	}
 }
