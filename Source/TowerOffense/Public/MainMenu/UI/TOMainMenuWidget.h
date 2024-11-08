@@ -33,6 +33,9 @@ public:
 	UFUNCTION()
 	void QuitGame();
 
+	UFUNCTION()
+	void SetCreateServerPlayer();
+
 protected:
 	virtual void NativeConstruct() override;
 };

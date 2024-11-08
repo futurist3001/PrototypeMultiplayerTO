@@ -11,7 +11,7 @@ void UTOPreparationWidget::SetPreparationText()
 
 FText UTOPreparationWidget::GetPreparationText()
 {
-	ATOPlayerController* PlayerController = GetWorld()->GetFirstPlayerController<ATOPlayerController>();
+	const ATOPlayerController* PlayerController = Cast<ATOPlayerController>(GetOwningPlayer());
 
 	if (PlayerController->HandleTime < 1.f)
 	{

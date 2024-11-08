@@ -50,7 +50,7 @@ void UPageLevelWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	auto* PlayerController = GetWorld()->GetFirstPlayerController<ATOMMPlayerController>();
+	ATOMMPlayerController* PlayerController = Cast<ATOMMPlayerController>(GetOwningPlayer());
 
 	CopyVerticalBox = VerticalBox;
 

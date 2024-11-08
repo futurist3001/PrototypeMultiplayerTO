@@ -4,11 +4,12 @@
 #include "Components/Button.h"
 #include "Kismet/GameplayStatics.h"
 #include "TowerOffense/Public/MainMenu/TOGameInstance.h"
+#include "TowerOffense/Public/MainMenu/ModeControl/TOMMPlayerController.h"
 
 void UTOMainMenuWidget::QuitGame()
 {
 	UKismetSystemLibrary::QuitGame(
-		GetWorld(), GetWorld()->GetFirstPlayerController(), EQuitPreference::Quit, false);
+		GetWorld(), GetOwningPlayer(), EQuitPreference::Quit, false);
 
 	if (UTOGameInstance* GameInstance = GetGameInstance<UTOGameInstance>())
 	{
@@ -30,9 +31,18 @@ void UTOMainMenuWidget::NativeConstruct()
 
 	if (UTOGameInstance* GameInstance = GetGameInstance<UTOGameInstance>())
 	{
+		CreateServerButton->OnClicked.AddDynamic(this, &UTOMainMenuWidget::SetCreateServerPlayer);
 		CreateServerButton->OnClicked.AddDynamic(GameInstance, &UTOGameInstance::StartCreateServer);
-		
 		JoinServerButton->OnClicked.AddDynamic(GameInstance, &UTOGameInstance::StartJoinServer);
 	}
 	QuitGameButton->OnClicked.AddDynamic(this, &UTOMainMenuWidget::QuitGame);
+}
+
+void UTOMainMenuWidget::SetCreateServerPlayer()
+{
+	if (UTOGameInstance* GameInstance = GetGameInstance<UTOGameInstance>();
+			ATOMMPlayerController* TOMMPlayerController = Cast<ATOMMPlayerController>(GetOwningPlayer()))
+	{
+		GameInstance->CreateServerPlayer = TOMMPlayerController;
+	}
 }

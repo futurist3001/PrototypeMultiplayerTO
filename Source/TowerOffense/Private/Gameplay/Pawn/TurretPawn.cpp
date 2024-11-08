@@ -143,12 +143,12 @@ void ATurretPawn::Tick(float DeltaTime)
 
 	RotationCurrentTime = DeltaTime;
 
-	if (HealthWidgetComponent && !HasAuthority())
+	if (HealthWidgetComponent && !HasAuthority(); APlayerController* PlayerContoller = Cast<APlayerController>(GetController()))
 	{
 		HealthWidgetComponent->SetWorldRotation(
 			UKismetMathLibrary::FindLookAtRotation(
 				HealthWidgetComponent->GetComponentLocation(),
-				GetWorld()->GetFirstPlayerController()->PlayerCameraManager->GetCameraLocation()));
+				PlayerContoller->PlayerCameraManager->GetCameraLocation()));
 	}
 }
 
@@ -223,9 +223,9 @@ void ATurretPawn::DestroyActor(AActor* ActorToDestroy)
 
 void ATurretPawn::ShakeCameraAfterKilling() const
 {
-	if (TOCameraShakeClass)
+	if (TOCameraShakeClass; APlayerController* PlayerContoller = Cast<APlayerController>(GetController()))
 	{
-		GetWorld()->GetFirstPlayerController()->PlayerCameraManager->PlayWorldCameraShake(
+		PlayerContoller->PlayerCameraManager->PlayWorldCameraShake(
 			GetWorld(), TOCameraShakeClass, GetActorLocation(), 6000.0f, 10000.0f, 10.f);
 	}
 }

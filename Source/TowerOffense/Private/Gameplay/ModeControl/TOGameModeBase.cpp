@@ -219,25 +219,25 @@ void ATOGameModeBase::AlternativeTankDestroyed(AActor* DestroyedActor)
 void ATOGameModeBase::AlternativeWinCase()
 {
 	if (FirstTeamPlayers >= 1 && SecondTeamPlayers <= 0 &&
-		ThirdTeamPlayers <= 0 && FourthTeamPlayers <= 0)
+			ThirdTeamPlayers <= 0 && FourthTeamPlayers <= 0)
 	{
 		SetEndGameState(EGamePhase::FirstTeamWin);
 	}
 
 	else if (SecondTeamPlayers >= 1 && FirstTeamPlayers <= 0 &&
-		ThirdTeamPlayers <= 0 && FourthTeamPlayers <= 0)
+			ThirdTeamPlayers <= 0 && FourthTeamPlayers <= 0)
 	{
 		SetEndGameState(EGamePhase::SecondTeamWin);
 	}
 
 	else if (ThirdTeamPlayers >= 1 && FirstTeamPlayers <= 0 &&
-		SecondTeamPlayers <= 0 && FourthTeamPlayers <= 0)
+			SecondTeamPlayers <= 0 && FourthTeamPlayers <= 0)
 	{
 		SetEndGameState(EGamePhase::ThirdTeamWin);
 	}
 
 	else if (FourthTeamPlayers >= 1 && FirstTeamPlayers <= 0 &&
-		SecondTeamPlayers <= 0 && ThirdTeamPlayers <= 0)
+			SecondTeamPlayers <= 0 && ThirdTeamPlayers <= 0)
 	{
 		SetEndGameState(EGamePhase::FourthTeamWin);
 	}

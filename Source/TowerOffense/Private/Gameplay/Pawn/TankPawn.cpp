@@ -255,8 +255,11 @@ void ATankPawn::Fire()
 
 		if (TOCameraShakeClass)
 		{
-			GetWorld()->GetFirstPlayerController()->PlayerCameraManager->PlayWorldCameraShake(
-				GetWorld(), TOCameraShakeClass, GetActorLocation(), 0.0f, 1000.0f, 1.f);
+			if (ATOPlayerController* PlayerController = Cast<ATOPlayerController>(GetController()))
+			{
+				PlayerController->PlayerCameraManager->PlayWorldCameraShake(
+					GetWorld(), TOCameraShakeClass, GetActorLocation(), 0.0f, 1000.0f, 1.f);
+			}
 		}
 
 		if (!HasAuthority())
@@ -308,8 +311,11 @@ void ATankPawn::Multicast_Fire_Implementation(FVector FireStart, FVector FireEnd
 
 		if (TOCameraShakeClass && GetLocalRole() != ROLE_Authority)
 		{
-			GetWorld()->GetFirstPlayerController()->PlayerCameraManager->PlayWorldCameraShake(
-				GetWorld(), TOCameraShakeClass, GetActorLocation(), 0.0f, 1000.0f, 1.f);
+			if (ATOPlayerController* PlayerController = Cast<ATOPlayerController>(GetController()))
+			{
+				PlayerController->PlayerCameraManager->PlayWorldCameraShake(
+					GetWorld(), TOCameraShakeClass, GetActorLocation(), 0.0f, 1000.0f, 1.f);
+			}
 		}
 
 		RPCTimeFire = 0.0f;
@@ -435,7 +441,7 @@ void ATankPawn::UpsideDownTank()
 {
 	if (TankTop->GetComponentLocation().Z < TankBottom->GetComponentLocation().Z && !bIsUpsideDown)
 	{
-		ATOPlayerController* PlayerController = GetWorld()->GetFirstPlayerController<ATOPlayerController>();
+		ATOPlayerController* PlayerController = Cast<ATOPlayerController>(GetWorld());
 		GetWorldTimerManager().SetTimer(
 			ReloadLevelTimerHandle, PlayerController, &ATOPlayerController::Restart, 3.0f, false);
 
