@@ -22,7 +22,7 @@ void ATOPlayerController::Restart()
 	ULevelSystem* LevelSystem = GEngine->GetEngineSubsystem<ULevelSystem>();
 	LevelSystem->OpenRelativeLevel(GetWorld(), LevelSystem->ActualCurrentLevel);
 
-	UWidgetBlueprintLibrary::SetInputMode_GameOnly(GetWorld()->GetFirstPlayerController());
+	UWidgetBlueprintLibrary::SetInputMode_GameOnly(this);
 
 	ATOGameStateBase* GameState = GetWorld()->GetGameState<ATOGameStateBase>();
 

@@ -372,8 +372,8 @@ void ATankPawn::Rotate(const FInputActionValue& Value)
 	YawCameraRotator += RotateValue;
 	TargetAngle.Yaw += RotateValue;
 
-	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
-	PlayerController->SetControlRotation(FRotator(0.f, YawCameraRotator, 0.f));
+	ATOPlayerController* TOPlayerController = Cast<ATOPlayerController>(GetController());
+	TOPlayerController->SetControlRotation(FRotator(0.f, YawCameraRotator, 0.f));
 
 	Server_SetControlRotation(YawCameraRotator);
 }
@@ -388,7 +388,7 @@ void ATankPawn::AdjustTurretPosition()
 {
 	if (!bIsRotate)
 	{
-		APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+		APlayerController* PlayerController = Cast<APlayerController>(GetController());
 
 		if (PlayerController->GetControlRotation() != ProjectileSpawnPoint->GetForwardVector().Rotation())
 		{
@@ -407,7 +407,7 @@ void ATankPawn::AdjustTurretPosition()
 
 void ATankPawn::ClearAdjustingTurretPositionTimer()
 {
-	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 
 	if (!bIsRotate)
 	{
@@ -460,7 +460,7 @@ void ATankPawn::Aiming(const FInputActionValue& Value)
 
 void ATankPawn::ChangeTeam(ETeam TeamChange)
 {
-	ATOPlayerController* TOPlayerController = GetWorld()->GetFirstPlayerController<ATOPlayerController>();
+	ATOPlayerController* TOPlayerController = Cast<ATOPlayerController>(GetController());
 	TOPlayerController->PlayerTeam = TeamChange;
 	Team = TeamChange;
 	
@@ -477,7 +477,7 @@ void ATankPawn::ChangeTeam(ETeam TeamChange)
 
 void ATankPawn::Server_ChangeTeam_Implementation(ETeam TeamChange)
 {
-	ATOPlayerController* TOPlayerController = GetWorld()->GetFirstPlayerController<ATOPlayerController>();
+	ATOPlayerController* TOPlayerController = Cast<ATOPlayerController>(GetController());
 	TOPlayerController->PlayerTeam = TeamChange;
 
 	Multicast_ChangeTeam(TeamChange);
