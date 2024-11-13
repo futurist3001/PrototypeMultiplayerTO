@@ -17,6 +17,7 @@
 #include "TowerOffense/Public/Gameplay/Other/TOCameraShake.h"
 #include "TowerOffense/Public/Gameplay/ModeControl/TOPlayerController.h"
 #include "TowerOffense/Public/Generic/MyBlueprintFunctionLibrary.h"
+#include "TowerOffense/Public/Generic/TOCharacterMovementComponent.h"
 
 ATankPawn::ATankPawn(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -32,6 +33,7 @@ ATankPawn::ATankPawn(const FObjectInitializer& ObjectInitializer)
 	LeftTankTrackRotation = CreateDefaultSubobject<USceneComponent>(TEXT("Left Tank Track Rotation"));
 	TankTop = CreateDefaultSubobject<USceneComponent>(TEXT("Top of the tank"));
 	TankBottom = CreateDefaultSubobject<USceneComponent>(TEXT("Bottom of the tank"));
+	TankMoverComponent = CreateDefaultSubobject<UTOCharacterMovementComponent>(TEXT("Tank mover component"));
 
 	SpringArmComponent->SetupAttachment(RootComponent);
 	CameraComponent->SetupAttachment(SpringArmComponent);
@@ -44,18 +46,15 @@ ATankPawn::ATankPawn(const FObjectInitializer& ObjectInitializer)
 	TankTop->SetupAttachment(TurretMesh);
 	TankBottom->SetupAttachment(BaseMesh);
 
+	TankMoverComponent->MaxWalkSpeed = 10.f;
+
 	CurrentTime = 0.f;
-	CurrentSpeed = 0.f;
-	SpeedStopGas = 0.f;
-	SpeedStopBraking = 0.f;
 	YawTurnRotator = 0.f;
 	MaxEnergy = 50.f;
 	CurrentEnergy = MaxEnergy;
 	OldShootTime = 10.f;
 	MaxFireHorizontalAngle = 15.f;
 
-	bIsStopMoving = false;
-	bReverseAttempt = false;
 	bPlayedTurretRotationSoundIteration = false;
 	bIsOldShoot = false;
 	bIsCollision = false;
@@ -64,11 +63,13 @@ ATankPawn::ATankPawn(const FObjectInitializer& ObjectInitializer)
 	MovementEffect = nullptr;
 
 	bReplicates = true;
-	SetReplicateMovement(true);
 }
 
-void ATankPawn::MoveStarted()
+
+void ATankPawn::MoveStartedAlternative()
 {
+	TankMoverComponent->Safe_bWantsToDrive = true;
+
 	if (MovementSound)
 	{
 		MovementAudioComponent = UGameplayStatics::CreateSound2D(GetWorld(), MovementSound);
@@ -76,18 +77,10 @@ void ATankPawn::MoveStarted()
 	}
 }
 
-void ATankPawn::MoveTriggeredValue(const FInputActionValue& Value)
+void ATankPawn::AlternativeMoveTriggered(const FInputActionValue& Value)
 {
 	MovementVector = Value.Get<FVector>();
-
-	if (!bReverseAttempt) // this will release once
-	{
-		if (MovementVector == PreviousMovementVector)
-		{
-			SpeedStopBraking *= -1;
-		}
-		bReverseAttempt = true;
-	}
+	AddActorLocalOffset(MovementVector, true, nullptr);
 
 	if (MovementEffect)
 	{
@@ -99,79 +92,40 @@ void ATankPawn::MoveTriggeredValue(const FInputActionValue& Value)
 
 	UpsideDownTank();
 
-	if (IsLocallyControlled())
+	if (GetLocalRole() != ROLE_Authority)
 	{
-		Server_PlayVFXSFXMoveAnim(
-			!bReverseAttempt, MovementVector, PreviousMovementVector, -SpeedStopBraking);
+		Server_AlternativeMoveTriggered(MovementVector);
 	}
 	
 	else
 	{
-		Multicast_PlayVFXSFXMoveAnim(
-			!bReverseAttempt, MovementVector, PreviousMovementVector, -SpeedStopBraking);
+		Multicast_AlternativeMoveTriggered(MovementVector);
 	}
 }
 
-void ATankPawn::MoveTriggeredInstance(const FInputActionInstance& Instance)
+void ATankPawn::Server_AlternativeMoveTriggered_Implementation(FVector NewVector)
 {
-	bIsStopMoving = false;
+	Multicast_AlternativeMoveTriggered(NewVector);
+}
 
-	if (!bIsCollision)
+void ATankPawn::Multicast_AlternativeMoveTriggered_Implementation(FVector NewVector)
+{
+	AddActorLocalOffset(NewVector * TankMoverComponent->MaxWalkSpeed, true, nullptr);
+
+	if (MovementEffect)
 	{
-		CurrentTime = Instance.GetElapsedTime();
-		CurrentSpeed = FMath::Lerp(SpeedStopBraking, Speed, FMath::Clamp(CurrentTime / AccelerationDuration, 0.f, 1.f));
-		AddActorLocalOffset(MovementVector * CurrentSpeed, true, nullptr);
-
-		SpeedStopGas = CurrentSpeed;
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), MovementEffect, RightTankTrack->GetComponentLocation());
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), MovementEffect, LeftTankTrack->GetComponentLocation());
 	}
+
+	UpsideDownTank();
 }
 
-void ATankPawn::Server_SetActorLocation_Implementation(FVector ActorLocation)
+void ATankPawn::AlternativeMoveCompleted()
 {
-	SetActorLocation(ActorLocation);
-}
-
-void ATankPawn::Server_PlayVFXSFXMoveAnim_Implementation(
-	bool RPCIsReverseAtempt, FVector RPCMovementVector, FVector RPCPreviousMovVector, float RPCSpeedStopBraking)
-{
-	Multicast_PlayVFXSFXMoveAnim(RPCIsReverseAtempt, RPCMovementVector, RPCPreviousMovVector, RPCSpeedStopBraking);
-}
-
-void ATankPawn::Multicast_PlayVFXSFXMoveAnim_Implementation(
-	bool RPCIsReverseAtempt, FVector RPCMovementVector, FVector RPCPreviousMovVector, float RPCSpeedStopBraking)
-{
-	if (GetLocalRole() != ROLE_AutonomousProxy)
-	{
-		if (!RPCIsReverseAtempt) // this will release once
-		{
-			if (RPCMovementVector == RPCPreviousMovVector)
-			{
-				RPCSpeedStopBraking *= -1;
-			}
-			RPCIsReverseAtempt = true;
-		}
-
-		if (MovementEffect)
-		{
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-				GetWorld(), MovementEffect, RightTankTrack->GetComponentLocation());
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-				GetWorld(), MovementEffect, LeftTankTrack->GetComponentLocation());
-		}
-
-		///////////////////////////////////////////////////////////////////
-		// Here must think about IsUpsideDownTank()
-		//////////////////////////////////////////////////////////////////
-	}
-}
-
-void ATankPawn::MoveCompleted()
-{
-	bIsStopMoving = true;
-	CurrentTime = 0;
-	bReverseAttempt = false;
-
-	PreviousMovementVector = MovementVector;
+	TankMoverComponent->Safe_bWantsToDrive = false;
 
 	if (MovementSound && MovementAudioComponent && MovementAudioComponent->IsValidLowLevel())
 	{
@@ -325,51 +279,10 @@ void ATankPawn::Multicast_Fire_Implementation(FVector FireStart, FVector FireEnd
 	}
 }
 
-void ATankPawn::NotifyHit(
-	UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp,
-	bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit)
-{
-	Super::NotifyHit(
-		MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
-
-	if (Other && !Other->IsA<AProjectile>() && !Other->IsA<ALandscape>())
-	{
-		MoveCompleted();
-
-		bIsCollision = true;
-		CurrentSpeed = 0.0f;
-		SpeedStopBraking = 0.0f;
-		SpeedStopGas = 0.0f;
-
-		MovementVector = FVector::ZeroVector;
-
-		GetWorld()->GetTimerManager().SetTimer(
-			CollisionTimerHandle, this, &ATankPawn::StopCollision, 0.2f, true);
-
-		GetWorldTimerManager().SetTimer(
-			AdjustingTurretPositionTimerHandle, this, &ATankPawn::AdjustTurretPosition, 1.0f, true);
-	}
-}
-
-void ATankPawn::StopCollision()
-{
-	if (bIsStopMoving)
-	{
-		bIsCollision = false;
-		GetWorldTimerManager().ClearTimer(CollisionTimerHandle);
-	}
-}
-
 void ATankPawn::RotateTurret(
 	const FRotator& Current, const FRotator& Target, float DeltaTime, float InterpSpeed)
 {
 	Super::RotateTurret(Current, Target, DeltaTime, InterpSpeed);
-}
-
-void ATankPawn::RotateCompleted()
-{
-	GetWorldTimerManager().SetTimer(RotComplAdjustingTurretPositionTimerHandle, this,
-		&ATankPawn::AdjustTurretPosition, 3.0f, true);
 }
 
 void ATankPawn::Rotate(const FInputActionValue& Value)
@@ -390,62 +303,12 @@ void ATankPawn::Server_SetControlRotation_Implementation(const float YawValue)
 	PlayerController->SetControlRotation(FRotator(0.f, YawValue, 0.f));
 }
 
-void ATankPawn::AdjustTurretPosition()
-{
-	if (!bIsRotate)
-	{
-		APlayerController* PlayerController = Cast<APlayerController>(GetController());
-
-		if (PlayerController->GetControlRotation() != ProjectileSpawnPoint->GetForwardVector().Rotation())
-		{
-			PlayerController->SetControlRotation(ProjectileSpawnPoint->GetForwardVector().Rotation());
-			YawCameraRotator = ProjectileSpawnPoint->GetForwardVector().Rotation().Yaw;
-		}
-
-		if (PlayerController->GetControlRotation() == ProjectileSpawnPoint->GetForwardVector().Rotation())
-		{
-			GetWorldTimerManager().SetTimer(
-				ClearAdjustingTurretPositionTimerHandle, this,
-				&ATankPawn::ClearAdjustingTurretPositionTimer, 0.001f, false);
-		}
-	}
-}
-
-void ATankPawn::ClearAdjustingTurretPositionTimer()
-{
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
-
-	if (!bIsRotate)
-	{
-		if (AdjustingTurretPositionTimerHandle.IsValid())
-		{
-			GetWorldTimerManager().ClearTimer(
-				AdjustingTurretPositionTimerHandle);
-		}
-
-		if (ClearAdjustingTurretPositionTimerHandle.IsValid())
-		{
-			GetWorldTimerManager().ClearTimer(
-				ClearAdjustingTurretPositionTimerHandle);
-		}
-
-		if (RotComplAdjustingTurretPositionTimerHandle.IsValid())
-		{
-			GetWorldTimerManager().ClearTimer(
-				RotComplAdjustingTurretPositionTimerHandle);
-		}
-	}
-}
-
 void ATankPawn::UpsideDownTank()
 {
 	if (TankTop->GetComponentLocation().Z < TankBottom->GetComponentLocation().Z && !bIsUpsideDown)
 	{
-		ATOPlayerController* PlayerController = Cast<ATOPlayerController>(GetWorld());
-		GetWorldTimerManager().SetTimer(
-			ReloadLevelTimerHandle, PlayerController, &ATOPlayerController::Restart, 3.0f, false);
-
 		bIsUpsideDown = true;
+		Destroy();
 	}
 }
 
@@ -530,15 +393,6 @@ void ATankPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (bIsStopMoving)
-	{
-		CurrentTime += DeltaTime;
-		CurrentSpeed = FMath::Lerp(SpeedStopGas, 0, FMath::Clamp(CurrentTime / AccelerationDuration, 0.f, 1.f));
-		AddActorLocalOffset(MovementVector * CurrentSpeed, true, nullptr);
-
-		SpeedStopBraking = -CurrentSpeed;
-	}
-
 	if (!bPlayedTurretRotationSoundIteration && bIsRotate)
 	{
 		// Play Sound
@@ -598,16 +452,13 @@ void ATankPawn::Tick(float DeltaTime)
 		RechargeTimeProjectile = 0.0f;
 	}
 
-	Server_SetActorLocation(GetActorLocation());
-
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 	if (PlayerController)
 	{
 		FRotator controlRot = PlayerController->GetControlRotation();
 		controlRot.Yaw -= 90.0f;
 		RotateTurret(TurretMesh->GetComponentRotation(), controlRot, DeltaTime, TurretRotationSpeed);
-	}
-	
+	}	
 }
 
 void ATankPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -616,14 +467,12 @@ void ATankPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		EnhancedInputComponent->BindAction(MoveForwardAction, ETriggerEvent::Started, this, &ATankPawn::MoveStarted);
-		EnhancedInputComponent->BindAction(MoveForwardAction, ETriggerEvent::Triggered, this, &ATankPawn::MoveTriggeredValue);
-		EnhancedInputComponent->BindAction(MoveForwardAction, ETriggerEvent::Triggered, this, &ATankPawn::MoveTriggeredInstance);
-		EnhancedInputComponent->BindAction(MoveForwardAction, ETriggerEvent::Completed, this, &ATankPawn::MoveCompleted);
+		EnhancedInputComponent->BindAction(MoveForwardAction, ETriggerEvent::Started, this, &ATankPawn::MoveStartedAlternative);
+		EnhancedInputComponent->BindAction(MoveForwardAction, ETriggerEvent::Triggered, this, &ATankPawn::AlternativeMoveTriggered);
+		EnhancedInputComponent->BindAction(MoveForwardAction, ETriggerEvent::Completed, this, &ATankPawn::AlternativeMoveCompleted);
 
 		EnhancedInputComponent->BindAction(TurnRightAction, ETriggerEvent::Triggered, this, &ATankPawn::Turn);
 		EnhancedInputComponent->BindAction(RotateTurretAction, ETriggerEvent::Triggered, this, &ATankPawn::Rotate);
-		EnhancedInputComponent->BindAction(RotateTurretAction, ETriggerEvent::Completed, this, &ATankPawn::RotateCompleted);
 		EnhancedInputComponent->BindAction(AimingAction, ETriggerEvent::Triggered, this, &ATankPawn::Aiming);
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &ATankPawn::Fire);
 	}

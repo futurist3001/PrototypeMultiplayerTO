@@ -55,7 +55,7 @@ void UTOGameInstance::OnCreateSessionComplete(FName ServerName, bool Succeeded)
 		GetWorld()->ServerTravel("/Game/TowerOffense/TowerOffenseLevel/Level_0");
 	}
 
-	else /*if (CreateServerPlayer == GetWorld()->GetFirstPlayerController<ATOMMPlayerController>())*/ // true if this client pressed button to create server
+	else if (CreateServerPlayer) // true if this client pressed button to create server
 	{// in case if it`s client that pressed "create"
 		FString ServerAddress;
 		if (SessionInterface->GetResolvedConnectString(ServerName, ServerAddress))

@@ -11,6 +11,7 @@ class UInputMappingContext;
 class UNiagaraSystem;
 class USoundBase;
 class USpringArmComponent;
+class UTOCharacterMovementComponent;
 struct FHitResult;
 struct FInputActionValue;
 struct FInputActionInstance;
@@ -23,6 +24,9 @@ class TOWEROFFENSE_API ATankPawn : public ATurretPawn
 public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnChangeTeam);
 	FOnChangeTeam OnChangeTeam;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	TObjectPtr<UTOCharacterMovementComponent> TankMoverComponent;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -104,18 +108,12 @@ private:
 	FTimerHandle ClearAdjustingTurretPositionTimerHandle;
 	FTimerHandle CollisionTimerHandle; // For detect when collision ends
 	FVector MovementVector;
-	FVector PreviousMovementVector; // previous pressed button
 	float CurrentTime;
-	float CurrentSpeed;
-	float SpeedStopGas; // speed after acceleration
-	float SpeedStopBraking; // speed after braking
 	float YawCameraRotator;
 	float YawTurnRotator;
 	float CurrentTimeFire; // For calculating fire interval
 	float PitchAimingRotator; // For calculating aiming process
 	float RechargeTimeProjectile; // For calculating recharge projectile interval
-	uint8 bIsStopMoving : 1;
-	uint8 bReverseAttempt : 1;
 	uint8 bPlayedTurretRotationSoundIteration : 1;
 	uint8 bIsOldShoot : 1;
 	uint8 bIsCollision : 1;
@@ -154,24 +152,13 @@ protected:
 	UFUNCTION(NetMulticast, reliable)
 	void Multicast_Fire(FVector FireStart, FVector FireEnd, float RPCTimeFire, float RPCFireEnergy, bool bRPCIsOldShoot);
 
-	virtual void NotifyHit(
-		UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp, bool bSelfMoved,
-		FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit) override;
-
-	void StopCollision();
-
-	void MoveStarted();
-	void MoveTriggeredValue(const FInputActionValue& Value);
-	void MoveTriggeredInstance(const FInputActionInstance& Instance);
+	void MoveStartedAlternative();
+	void AlternativeMoveTriggered(const FInputActionValue& Value);
 	UFUNCTION(Server, unreliable)
-	void Server_SetActorLocation(FVector ActorLocation);
-	UFUNCTION(Server, unreliable)
-	void Server_PlayVFXSFXMoveAnim(
-		bool RPCIsReverseAtempt, FVector RPCMovementVector, FVector RPCPreviousMovVector, float RPCSpeedStopBraking);
+	void Server_AlternativeMoveTriggered(FVector NewVector);
 	UFUNCTION(NetMulticast, unreliable)
-	void Multicast_PlayVFXSFXMoveAnim(
-		bool RPCIsReverseAtempt, FVector RPCMovementVector, FVector RPCPreviousMovVector, float RPCSpeedStopBraking);
-	void MoveCompleted();
+	void Multicast_AlternativeMoveTriggered(FVector NewVector);
+	void AlternativeMoveCompleted();
 
 	void Turn(const FInputActionValue& Value);
 	UFUNCTION(Server, unreliable)
@@ -182,10 +169,7 @@ protected:
 	void Rotate(const FInputActionValue& Value);
 	UFUNCTION(Server, unreliable)
 	void Server_SetControlRotation(const float YawValue);
-	void RotateCompleted();
 
-	void AdjustTurretPosition();
-	void ClearAdjustingTurretPositionTimer();
 	void UpsideDownTank();
 
 	void Aiming(const FInputActionValue& Value);

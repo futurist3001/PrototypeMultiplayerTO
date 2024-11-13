@@ -143,7 +143,8 @@ void ATurretPawn::Tick(float DeltaTime)
 
 	RotationCurrentTime = DeltaTime;
 
-	if (HealthWidgetComponent && !HasAuthority(); APlayerController* PlayerContoller = Cast<APlayerController>(GetController()))
+	if (HealthWidgetComponent && GetLocalRole() == ROLE_AutonomousProxy;
+		APlayerController* PlayerContoller = GetWorld()->GetFirstPlayerController<APlayerController>())
 	{
 		HealthWidgetComponent->SetWorldRotation(
 			UKismetMathLibrary::FindLookAtRotation(
