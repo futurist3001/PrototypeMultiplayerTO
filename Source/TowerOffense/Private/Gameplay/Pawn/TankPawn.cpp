@@ -80,7 +80,7 @@ void ATankPawn::MoveStartedAlternative()
 void ATankPawn::AlternativeMoveTriggered(const FInputActionValue& Value)
 {
 	MovementVector = Value.Get<FVector>();
-	AddActorLocalOffset(MovementVector, true, nullptr);
+	AddActorLocalOffset(MovementVector * TankMoverComponent->MaxWalkSpeed, true, nullptr);
 
 	if (MovementEffect)
 	{
