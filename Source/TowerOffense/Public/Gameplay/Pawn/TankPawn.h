@@ -11,7 +11,7 @@ class UInputMappingContext;
 class UNiagaraSystem;
 class USoundBase;
 class USpringArmComponent;
-class UTOCharacterMovementComponent;
+class UMyPrediction;
 struct FHitResult;
 struct FInputActionValue;
 struct FInputActionInstance;
@@ -25,8 +25,7 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnChangeTeam);
 	FOnChangeTeam OnChangeTeam;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
-	TObjectPtr<UTOCharacterMovementComponent> TankMoverComponent;
+	UMyPrediction* MyPrediction;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")

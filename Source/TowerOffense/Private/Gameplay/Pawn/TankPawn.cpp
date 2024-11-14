@@ -17,7 +17,7 @@
 #include "TowerOffense/Public/Gameplay/Other/TOCameraShake.h"
 #include "TowerOffense/Public/Gameplay/ModeControl/TOPlayerController.h"
 #include "TowerOffense/Public/Generic/MyBlueprintFunctionLibrary.h"
-#include "TowerOffense/Public/Generic/TOCharacterMovementComponent.h"
+#include "TowerOffense/Public/Generic/MyPrediction.h"
 
 ATankPawn::ATankPawn(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -33,7 +33,7 @@ ATankPawn::ATankPawn(const FObjectInitializer& ObjectInitializer)
 	LeftTankTrackRotation = CreateDefaultSubobject<USceneComponent>(TEXT("Left Tank Track Rotation"));
 	TankTop = CreateDefaultSubobject<USceneComponent>(TEXT("Top of the tank"));
 	TankBottom = CreateDefaultSubobject<USceneComponent>(TEXT("Bottom of the tank"));
-	TankMoverComponent = CreateDefaultSubobject<UTOCharacterMovementComponent>(TEXT("Tank mover component"));
+	MyPrediction = CreateDefaultSubobject<UMyPrediction>(TEXT("MyPrediction"));
 
 	SpringArmComponent->SetupAttachment(RootComponent);
 	CameraComponent->SetupAttachment(SpringArmComponent);
@@ -45,8 +45,6 @@ ATankPawn::ATankPawn(const FObjectInitializer& ObjectInitializer)
 
 	TankTop->SetupAttachment(TurretMesh);
 	TankBottom->SetupAttachment(BaseMesh);
-
-	TankMoverComponent->MaxWalkSpeed = 10.f;
 
 	CurrentTime = 0.f;
 	YawTurnRotator = 0.f;
@@ -68,8 +66,6 @@ ATankPawn::ATankPawn(const FObjectInitializer& ObjectInitializer)
 
 void ATankPawn::MoveStartedAlternative()
 {
-	TankMoverComponent->Safe_bWantsToDrive = true;
-
 	if (MovementSound)
 	{
 		MovementAudioComponent = UGameplayStatics::CreateSound2D(GetWorld(), MovementSound);
@@ -80,7 +76,12 @@ void ATankPawn::MoveStartedAlternative()
 void ATankPawn::AlternativeMoveTriggered(const FInputActionValue& Value)
 {
 	MovementVector = Value.Get<FVector>();
-	AddActorLocalOffset(MovementVector * TankMoverComponent->MaxWalkSpeed, true, nullptr);
+	AddActorLocalOffset(MovementVector * Speed, true, nullptr);
+
+	if (GetLocalRole() == ROLE_AutonomousProxy)
+	{
+		MyPrediction->SaveClientMovePosition(MovementVector, Speed);
+	}
 
 	if (MovementEffect)
 	{
@@ -110,7 +111,16 @@ void ATankPawn::Server_AlternativeMoveTriggered_Implementation(FVector NewVector
 
 void ATankPawn::Multicast_AlternativeMoveTriggered_Implementation(FVector NewVector)
 {
-	AddActorLocalOffset(NewVector * TankMoverComponent->MaxWalkSpeed, true, nullptr);
+	//AddActorLocalOffset(NewVector * Speed, true, nullptr);
+
+	MyPrediction->PredictServerMovePosition(NewVector, Speed);
+	if (MyPrediction->ClientAdjustPosition(this) != FVector::ZeroVector)
+	{
+		AddActorLocalOffset(MyPrediction->ClientAdjustPosition(this), true, nullptr);
+	}
+
+	MyPrediction->ClearClientMovePosition();
+	MyPrediction->ClearPredictedServerMovePosition();
 
 	if (MovementEffect)
 	{
@@ -125,8 +135,6 @@ void ATankPawn::Multicast_AlternativeMoveTriggered_Implementation(FVector NewVec
 
 void ATankPawn::AlternativeMoveCompleted()
 {
-	TankMoverComponent->Safe_bWantsToDrive = false;
-
 	if (MovementSound && MovementAudioComponent && MovementAudioComponent->IsValidLowLevel())
 	{
 		MovementAudioComponent->Stop();
