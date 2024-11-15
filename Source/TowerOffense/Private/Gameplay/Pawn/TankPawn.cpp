@@ -46,7 +46,7 @@ ATankPawn::ATankPawn(const FObjectInitializer& ObjectInitializer)
 	TankTop->SetupAttachment(TurretMesh);
 	TankBottom->SetupAttachment(BaseMesh);
 
-	CurrentTime = 0.f;
+	MoveTimeStamp = -1.0f;
 	YawTurnRotator = 0.f;
 	MaxEnergy = 50.f;
 	CurrentEnergy = MaxEnergy;
@@ -77,11 +77,8 @@ void ATankPawn::AlternativeMoveTriggered(const FInputActionValue& Value)
 {
 	MovementVector = Value.Get<FVector>();
 	AddActorLocalOffset(MovementVector * Speed, true, nullptr);
-
-	if (GetLocalRole() == ROLE_AutonomousProxy)
-	{
-		MyPrediction->SaveClientMovePosition(MovementVector, Speed);
-	}
+	MoveTimeStamp += 1.00f;
+	MyPrediction->SaveClientPredictedPosition(MovementVector, MoveTimeStamp);
 
 	if (MovementEffect)
 	{
@@ -111,16 +108,17 @@ void ATankPawn::Server_AlternativeMoveTriggered_Implementation(FVector NewVector
 
 void ATankPawn::Multicast_AlternativeMoveTriggered_Implementation(FVector NewVector)
 {
-	//AddActorLocalOffset(NewVector * Speed, true, nullptr);
+	MyPrediction->ContemporaryServerPositionState(NewVector, Speed, MoveTimeStamp);
 
-	MyPrediction->PredictServerMovePosition(NewVector, Speed);
-	if (MyPrediction->ClientAdjustPosition(this) != FVector::ZeroVector)
+	if (MyPrediction->ContemporaryServerActorPosition() != MyPrediction->Saved_ClientPredictedPosition.Position) // if client prediction != contemporary server position
 	{
-		AddActorLocalOffset(MyPrediction->ClientAdjustPosition(this), true, nullptr);
+		AddActorLocalOffset(MyPrediction->ContemporaryServerActorPosition(), true, nullptr);
 	}
 
-	MyPrediction->ClearClientMovePosition();
-	MyPrediction->ClearPredictedServerMovePosition();
+	else
+	{
+		AddActorLocalOffset(MyPrediction->Saved_ClientPredictedPosition.Position, true, nullptr);
+	}
 
 	if (MovementEffect)
 	{
@@ -129,6 +127,9 @@ void ATankPawn::Multicast_AlternativeMoveTriggered_Implementation(FVector NewVec
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
 			GetWorld(), MovementEffect, LeftTankTrack->GetComponentLocation());
 	}
+
+	MyPrediction->ClearClientPredictedPosition();
+	MyPrediction->ClearPredictedServerSavedMovePositionArray();
 
 	UpsideDownTank();
 }

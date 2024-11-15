@@ -14,15 +14,11 @@ struct FSavedMovePosition
 	FVector Position;
 
 	UPROPERTY()
-	int32 TimeStamp;
-
-	UPROPERTY()
-	float Speed;
+	float TimeStamp;
 
 	FSavedMovePosition()
 		: Position(FVector::ZeroVector),
-		  TimeStamp(0),
-		  Speed(0.0f)
+		  TimeStamp(0.0f)
 	{}
 };
 
@@ -33,7 +29,7 @@ class TOWEROFFENSE_API UMyPrediction : public UObject
 
 public:
 	UPROPERTY(Transient)
-	TArray<FSavedMovePosition> PendingClientSavedMovePosition;
+	FSavedMovePosition Saved_ClientPredictedPosition;
 
 	UPROPERTY(Transient)
 	TArray<FSavedMovePosition> PredictionServerSavedMovePosition;
@@ -41,11 +37,10 @@ public:
 public:
 	UMyPrediction(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	void SaveClientMovePosition(FVector PawnPosition, float ActorSpeed);
-	void ClearClientMovePosition();
-	void PredictServerMovePosition(FVector PawnPosition, float ActorSpeed);
-	void ClearPredictedServerMovePosition();
-	FVector ClientAdjustPosition(APawn* PawnToAdjust);
+	void SaveClientPredictedPosition(FVector NewPosition, float NewTimeStamp); // save client prediction
+	void ContemporaryServerPositionState(FVector ActorPosition, float Speed, float ParamTimeStamp); // here we predict 20 state ahead compare with input state
+	FVector ContemporaryServerActorPosition(); // return contemporary position from the server based on server prediction
 
-	
+	void ClearClientPredictedPosition();
+	void ClearPredictedServerSavedMovePositionArray();
 };

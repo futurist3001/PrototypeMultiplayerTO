@@ -107,7 +107,7 @@ private:
 	FTimerHandle ClearAdjustingTurretPositionTimerHandle;
 	FTimerHandle CollisionTimerHandle; // For detect when collision ends
 	FVector MovementVector;
-	float CurrentTime;
+	float MoveTimeStamp;
 	float YawCameraRotator;
 	float YawTurnRotator;
 	float CurrentTimeFire; // For calculating fire interval
