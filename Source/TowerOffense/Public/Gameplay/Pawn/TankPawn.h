@@ -15,6 +15,7 @@ class UMyPrediction;
 struct FHitResult;
 struct FInputActionValue;
 struct FInputActionInstance;
+struct FSavedMovePosition;
 
 UCLASS()
 class TOWEROFFENSE_API ATankPawn : public ATurretPawn
@@ -25,7 +26,7 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnChangeTeam);
 	FOnChangeTeam OnChangeTeam;
 
-	UMyPrediction* MyPrediction;
+	TObjectPtr<UMyPrediction> MyPrediction;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -107,7 +108,7 @@ private:
 	FTimerHandle ClearAdjustingTurretPositionTimerHandle;
 	FTimerHandle CollisionTimerHandle; // For detect when collision ends
 	FVector MovementVector;
-	float MoveTimeStamp;
+	int64 MoveTimeStamp;
 	float YawCameraRotator;
 	float YawTurnRotator;
 	float CurrentTimeFire; // For calculating fire interval
@@ -154,9 +155,9 @@ protected:
 	void MoveStartedAlternative();
 	void AlternativeMoveTriggered(const FInputActionValue& Value);
 	UFUNCTION(Server, unreliable)
-	void Server_AlternativeMoveTriggered(FVector NewVector);
+	void Server_AlternativeMoveTriggered(FVector NewVector, int64 ParamMoveTimeStamp);
 	UFUNCTION(NetMulticast, unreliable)
-	void Multicast_AlternativeMoveTriggered(FVector NewVector);
+	void Multicast_AlternativeMoveTriggered(FVector NewVector, int64 ParamMoveTimeStamp);
 	void AlternativeMoveCompleted();
 
 	void Turn(const FInputActionValue& Value);
@@ -179,4 +180,7 @@ protected:
 	void Server_ChangeTeam(ETeam TeamChange);
 	UFUNCTION(NetMulticast, reliable)
 	void Multicast_ChangeTeam(ETeam TeamChange);
+
+	UFUNCTION(Client, reliable)
+	void Client_ClientAdjustPosition(FSavedMovePosition ServerSavedPosition);
 };

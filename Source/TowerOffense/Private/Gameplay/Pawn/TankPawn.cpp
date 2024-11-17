@@ -33,7 +33,7 @@ ATankPawn::ATankPawn(const FObjectInitializer& ObjectInitializer)
 	LeftTankTrackRotation = CreateDefaultSubobject<USceneComponent>(TEXT("Left Tank Track Rotation"));
 	TankTop = CreateDefaultSubobject<USceneComponent>(TEXT("Top of the tank"));
 	TankBottom = CreateDefaultSubobject<USceneComponent>(TEXT("Bottom of the tank"));
-	MyPrediction = CreateDefaultSubobject<UMyPrediction>(TEXT("MyPrediction"));
+	MyPrediction = NewObject<UMyPrediction>(this, FName("MyPrediction"));
 
 	SpringArmComponent->SetupAttachment(RootComponent);
 	CameraComponent->SetupAttachment(SpringArmComponent);
@@ -46,7 +46,7 @@ ATankPawn::ATankPawn(const FObjectInitializer& ObjectInitializer)
 	TankTop->SetupAttachment(TurretMesh);
 	TankBottom->SetupAttachment(BaseMesh);
 
-	MoveTimeStamp = -1.0f;
+	MoveTimeStamp = -1;
 	YawTurnRotator = 0.f;
 	MaxEnergy = 50.f;
 	CurrentEnergy = MaxEnergy;
@@ -76,48 +76,23 @@ void ATankPawn::MoveStartedAlternative()
 void ATankPawn::AlternativeMoveTriggered(const FInputActionValue& Value)
 {
 	MovementVector = Value.Get<FVector>();
+	MoveTimeStamp += 1;
+
+	if (GetLocalRole() == ROLE_AutonomousProxy)
+	{
+		Server_AlternativeMoveTriggered(MovementVector, MoveTimeStamp);
+	}
+
+	else
+	{
+		Multicast_AlternativeMoveTriggered(MovementVector, MoveTimeStamp);
+	}
+
 	AddActorLocalOffset(MovementVector * Speed, true, nullptr);
-	MoveTimeStamp += 1.00f;
-	MyPrediction->SaveClientPredictedPosition(MovementVector, MoveTimeStamp);
 
-	if (MovementEffect)
+	if (MyPrediction)
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			GetWorld(), MovementEffect, RightTankTrack->GetComponentLocation());
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			GetWorld(), MovementEffect, LeftTankTrack->GetComponentLocation());
-	}
-
-	UpsideDownTank();
-
-	if (GetLocalRole() != ROLE_Authority)
-	{
-		Server_AlternativeMoveTriggered(MovementVector);
-	}
-	
-	else
-	{
-		Multicast_AlternativeMoveTriggered(MovementVector);
-	}
-}
-
-void ATankPawn::Server_AlternativeMoveTriggered_Implementation(FVector NewVector)
-{
-	Multicast_AlternativeMoveTriggered(NewVector);
-}
-
-void ATankPawn::Multicast_AlternativeMoveTriggered_Implementation(FVector NewVector)
-{
-	MyPrediction->ContemporaryServerPositionState(NewVector, Speed, MoveTimeStamp);
-
-	if (MyPrediction->ContemporaryServerActorPosition() != MyPrediction->Saved_ClientPredictedPosition.Position) // if client prediction != contemporary server position
-	{
-		AddActorLocalOffset(MyPrediction->ContemporaryServerActorPosition(), true, nullptr);
-	}
-
-	else
-	{
-		AddActorLocalOffset(MyPrediction->Saved_ClientPredictedPosition.Position, true, nullptr);
+		MyPrediction->SaveClientPredictedPosition(GetActorLocation(), MoveTimeStamp);
 	}
 
 	if (MovementEffect)
@@ -128,10 +103,43 @@ void ATankPawn::Multicast_AlternativeMoveTriggered_Implementation(FVector NewVec
 			GetWorld(), MovementEffect, LeftTankTrack->GetComponentLocation());
 	}
 
-	MyPrediction->ClearClientPredictedPosition();
-	MyPrediction->ClearPredictedServerSavedMovePositionArray();
-
 	UpsideDownTank();
+}
+
+void ATankPawn::Server_AlternativeMoveTriggered_Implementation(FVector NewVector, int64 ParamMoveTimeStamp)
+{
+	AddActorLocalOffset(NewVector * Speed, true);
+	MyPrediction->SaveServerSavedMove(GetActorLocation(), ParamMoveTimeStamp);
+
+	Client_ClientAdjustPosition(MyPrediction->ServerMove);
+}
+
+void ATankPawn::Client_ClientAdjustPosition_Implementation(FSavedMovePosition ServerSavedPosition)
+{
+	for (FSavedMovePosition& SavedMovePosition : MyPrediction->PendingSavedMoves)
+	{
+		if (ServerSavedPosition.TimeStamp == SavedMovePosition.TimeStamp)
+		{
+			if ((ServerSavedPosition.Position - SavedMovePosition.Position).Size() > 1.0f)
+			{
+				SetActorLocation(ServerSavedPosition.Position);
+				break;
+			}
+		}
+	}
+}
+
+void ATankPawn::Multicast_AlternativeMoveTriggered_Implementation(FVector NewVector, int64 ParamMoveTimeStamp)
+{
+	if (MovementEffect)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), MovementEffect, RightTankTrack->GetComponentLocation());
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), MovementEffect, LeftTankTrack->GetComponentLocation());
+	}
+
+	UpsideDownTank(); // think to transfer
 }
 
 void ATankPawn::AlternativeMoveCompleted()
@@ -467,7 +475,7 @@ void ATankPawn::Tick(float DeltaTime)
 		FRotator controlRot = PlayerController->GetControlRotation();
 		controlRot.Yaw -= 90.0f;
 		RotateTurret(TurretMesh->GetComponentRotation(), controlRot, DeltaTime, TurretRotationSpeed);
-	}	
+	}
 }
 
 void ATankPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

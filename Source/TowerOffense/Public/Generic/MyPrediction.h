@@ -14,11 +14,11 @@ struct FSavedMovePosition
 	FVector Position;
 
 	UPROPERTY()
-	float TimeStamp;
+	int64 TimeStamp;
 
 	FSavedMovePosition()
 		: Position(FVector::ZeroVector),
-		  TimeStamp(0.0f)
+		  TimeStamp(0)
 	{}
 };
 
@@ -32,15 +32,18 @@ public:
 	FSavedMovePosition Saved_ClientPredictedPosition;
 
 	UPROPERTY(Transient)
-	TArray<FSavedMovePosition> PredictionServerSavedMovePosition;
+	FSavedMovePosition ServerMove;
+
+	UPROPERTY(Transient)
+	TArray<FSavedMovePosition> PendingSavedMoves;
 
 public:
 	UMyPrediction(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	void SaveClientPredictedPosition(FVector NewPosition, float NewTimeStamp); // save client prediction
-	void ContemporaryServerPositionState(FVector ActorPosition, float Speed, float ParamTimeStamp); // here we predict 20 state ahead compare with input state
-	FVector ContemporaryServerActorPosition(); // return contemporary position from the server based on server prediction
+	void SaveClientPredictedPosition(FVector NewPosition, int64 NewTimeStamp); // save client prediction
+	void SaveServerSavedMove(FVector NewPosition, int64 NewTimeStamp); // save server state
+
 
 	void ClearClientPredictedPosition();
-	void ClearPredictedServerSavedMovePositionArray();
+	void ClearPendingSavedMoves();
 };

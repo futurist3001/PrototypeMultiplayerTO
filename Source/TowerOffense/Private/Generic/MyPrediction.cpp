@@ -5,41 +5,23 @@ UMyPrediction::UMyPrediction(const FObjectInitializer& ObjectInitializer)
 {
 }
 
-void UMyPrediction::SaveClientPredictedPosition(FVector NewPosition, float NewTimeStamp)
+void UMyPrediction::SaveClientPredictedPosition(FVector NewPosition, int64 NewTimeStamp)
 {
 	Saved_ClientPredictedPosition.Position = NewPosition;
 	Saved_ClientPredictedPosition.TimeStamp = NewTimeStamp;
+	
+	if (PendingSavedMoves.Num() >= 20)
+	{
+		ClearPendingSavedMoves();
+	}
+
+	PendingSavedMoves.Add(Saved_ClientPredictedPosition); // it`s not reliable
 }
 
-void UMyPrediction::ContemporaryServerPositionState(FVector ActorPosition, float Speed, float ParamTimeStamp)
+void UMyPrediction::SaveServerSavedMove(FVector NewPosition, int64 NewTimeStamp)
 {
-	if (!PredictionServerSavedMovePosition.IsEmpty() &&
-		!ensure(PredictionServerSavedMovePosition.IsValidIndex(0)))
-	{
-		PredictionServerSavedMovePosition.Reset();
-	}
-
-	for (int i = 0; i <= 20; ++i)
-	{
-		FSavedMovePosition SavedMovePosition;
-		SavedMovePosition.Position = ActorPosition * ((i + 1) * Speed);
-		SavedMovePosition.TimeStamp = ParamTimeStamp + i;
-
-		PredictionServerSavedMovePosition.Add(SavedMovePosition);
-	}
-}
-
-FVector UMyPrediction::ContemporaryServerActorPosition()
-{
-	for (FSavedMovePosition& SavedMovePosition : PredictionServerSavedMovePosition)
-	{
-		if (Saved_ClientPredictedPosition.TimeStamp == SavedMovePosition.TimeStamp)
-		{
-			return SavedMovePosition.Position;
-		}
-	}
-
-	return FVector::ZeroVector;
+	ServerMove.Position = NewPosition;
+	ServerMove.TimeStamp = NewTimeStamp;
 }
 
 void UMyPrediction::ClearClientPredictedPosition()
@@ -47,7 +29,7 @@ void UMyPrediction::ClearClientPredictedPosition()
 	Saved_ClientPredictedPosition.Position = FVector::ZeroVector;
 }
 
-void UMyPrediction::ClearPredictedServerSavedMovePositionArray()
+void UMyPrediction::ClearPendingSavedMoves()
 {
-	PredictionServerSavedMovePosition.Reset();
+	PendingSavedMoves.Reset();
 }
