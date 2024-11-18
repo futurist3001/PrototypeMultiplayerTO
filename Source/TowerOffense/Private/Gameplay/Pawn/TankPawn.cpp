@@ -90,7 +90,7 @@ void ATankPawn::AlternativeMoveTriggered(const FInputActionValue& Value)
 
 	AddActorLocalOffset(MovementVector * Speed, true, nullptr);
 
-	if (MyPrediction)
+	if (MyPrediction->IsValidLowLevel())
 	{
 		MyPrediction->SaveClientPredictedPosition(GetActorLocation(), MoveTimeStamp);
 	}
@@ -109,21 +109,28 @@ void ATankPawn::AlternativeMoveTriggered(const FInputActionValue& Value)
 void ATankPawn::Server_AlternativeMoveTriggered_Implementation(FVector NewVector, int64 ParamMoveTimeStamp)
 {
 	AddActorLocalOffset(NewVector * Speed, true);
-	MyPrediction->SaveServerSavedMove(GetActorLocation(), ParamMoveTimeStamp);
 
-	Client_ClientAdjustPosition(MyPrediction->ServerMove);
+	if (MyPrediction->IsValidLowLevel())
+	{
+		MyPrediction->SaveServerSavedMove(GetActorLocation(), ParamMoveTimeStamp);
+
+		Client_ClientAdjustPosition(MyPrediction->ServerMove);
+	}
 }
 
 void ATankPawn::Client_ClientAdjustPosition_Implementation(FSavedMovePosition ServerSavedPosition)
 {
-	for (FSavedMovePosition& SavedMovePosition : MyPrediction->PendingSavedMoves)
+	if (MyPrediction->IsValidLowLevel())
 	{
-		if (ServerSavedPosition.TimeStamp == SavedMovePosition.TimeStamp)
+		for (FSavedMovePosition& SavedMovePosition : MyPrediction->PendingSavedMoves)
 		{
-			if ((ServerSavedPosition.Position - SavedMovePosition.Position).Size() > 1.0f)
+			if (ServerSavedPosition.TimeStamp == SavedMovePosition.TimeStamp)
 			{
-				SetActorLocation(ServerSavedPosition.Position);
-				break;
+				if ((ServerSavedPosition.Position - SavedMovePosition.Position).Size() > 1.0f)
+				{
+					SetActorLocation(ServerSavedPosition.Position);
+					break;
+				}
 			}
 		}
 	}
@@ -436,13 +443,16 @@ void ATankPawn::Tick(float DeltaTime)
 		}
 	}
 
-	GetWorld()->LineTraceSingleByChannel(
-		ShootingPoint, ProjectileSpawnPoint->GetComponentLocation(), 
-		ProjectileSpawnPoint->GetComponentLocation() + (FRotator(
-		ProjectileSpawnPoint->GetForwardVector().Rotation().Pitch + PitchAimingRotator,
-		ProjectileSpawnPoint->GetForwardVector().Rotation().Yaw,
-		ProjectileSpawnPoint->GetForwardVector().Rotation().Roll)).GetNormalized().Vector() * 100000.f,
-		ECollisionChannel::ECC_Camera);
+	if (GetLocalRole() != ROLE_Authority)
+	{
+		GetWorld()->LineTraceSingleByChannel(
+			ShootingPoint, ProjectileSpawnPoint->GetComponentLocation(),
+			ProjectileSpawnPoint->GetComponentLocation() + (FRotator(
+				ProjectileSpawnPoint->GetForwardVector().Rotation().Pitch + PitchAimingRotator,
+				ProjectileSpawnPoint->GetForwardVector().Rotation().Yaw,
+				ProjectileSpawnPoint->GetForwardVector().Rotation().Roll)).GetNormalized().Vector() * 100000.f,
+			ECollisionChannel::ECC_Camera);
+	}
 
 	if (ShootingPoint.Location != FVector(0.f,0.f,0.f))
 	{

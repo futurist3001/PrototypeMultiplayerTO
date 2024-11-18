@@ -15,7 +15,7 @@ void UMyPrediction::SaveClientPredictedPosition(FVector NewPosition, int64 NewTi
 		ClearPendingSavedMoves();
 	}
 
-	PendingSavedMoves.Add(Saved_ClientPredictedPosition); // it`s not reliable
+	PendingSavedMoves.Add(Saved_ClientPredictedPosition);
 }
 
 void UMyPrediction::SaveServerSavedMove(FVector NewPosition, int64 NewTimeStamp)
