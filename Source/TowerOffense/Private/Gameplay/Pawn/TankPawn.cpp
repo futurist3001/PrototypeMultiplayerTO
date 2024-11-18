@@ -33,7 +33,7 @@ ATankPawn::ATankPawn(const FObjectInitializer& ObjectInitializer)
 	LeftTankTrackRotation = CreateDefaultSubobject<USceneComponent>(TEXT("Left Tank Track Rotation"));
 	TankTop = CreateDefaultSubobject<USceneComponent>(TEXT("Top of the tank"));
 	TankBottom = CreateDefaultSubobject<USceneComponent>(TEXT("Bottom of the tank"));
-	MyPrediction = NewObject<UMyPrediction>(this, FName("MyPrediction"));
+	MyPrediction = CreateDefaultSubobject<UMyPrediction>(TEXT("MyPrediction"));
 
 	SpringArmComponent->SetupAttachment(RootComponent);
 	CameraComponent->SetupAttachment(SpringArmComponent);
@@ -76,6 +76,12 @@ void ATankPawn::MoveStartedAlternative()
 void ATankPawn::AlternativeMoveTriggered(const FInputActionValue& Value)
 {
 	MovementVector = Value.Get<FVector>();
+
+	if (MoveTimeStamp >= 20)
+	{
+		MoveTimeStamp = -1;
+	}
+
 	MoveTimeStamp += 1;
 
 	if (GetLocalRole() == ROLE_AutonomousProxy)
@@ -85,14 +91,17 @@ void ATankPawn::AlternativeMoveTriggered(const FInputActionValue& Value)
 
 	else
 	{
-		Multicast_AlternativeMoveTriggered(MovementVector, MoveTimeStamp);
+		Multicast_AlternativeMoveTriggered();
 	}
 
 	AddActorLocalOffset(MovementVector * Speed, true, nullptr);
 
-	if (MyPrediction->IsValidLowLevel())
+	if (GetLocalRole() == ROLE_AutonomousProxy)
 	{
-		MyPrediction->SaveClientPredictedPosition(GetActorLocation(), MoveTimeStamp);
+		if (MyPrediction->IsValidLowLevel())
+		{
+			MyPrediction->SaveClientPredictedPosition(GetActorLocation(), MoveTimeStamp);
+		}
 	}
 
 	if (MovementEffect)
@@ -109,6 +118,8 @@ void ATankPawn::AlternativeMoveTriggered(const FInputActionValue& Value)
 void ATankPawn::Server_AlternativeMoveTriggered_Implementation(FVector NewVector, int64 ParamMoveTimeStamp)
 {
 	AddActorLocalOffset(NewVector * Speed, true);
+
+	Multicast_AlternativeMoveTriggered();
 
 	if (MyPrediction->IsValidLowLevel())
 	{
@@ -136,7 +147,7 @@ void ATankPawn::Client_ClientAdjustPosition_Implementation(FSavedMovePosition Se
 	}
 }
 
-void ATankPawn::Multicast_AlternativeMoveTriggered_Implementation(FVector NewVector, int64 ParamMoveTimeStamp)
+void ATankPawn::Multicast_AlternativeMoveTriggered_Implementation()
 {
 	if (MovementEffect)
 	{

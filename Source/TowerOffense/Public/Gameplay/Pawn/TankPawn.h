@@ -26,6 +26,7 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnChangeTeam);
 	FOnChangeTeam OnChangeTeam;
 
+	UPROPERTY()
 	TObjectPtr<UMyPrediction> MyPrediction;
 
 protected:
@@ -156,8 +157,10 @@ protected:
 	void AlternativeMoveTriggered(const FInputActionValue& Value);
 	UFUNCTION(Server, unreliable)
 	void Server_AlternativeMoveTriggered(FVector NewVector, int64 ParamMoveTimeStamp);
+	UFUNCTION(Client, reliable)
+	void Client_ClientAdjustPosition(FSavedMovePosition ServerSavedPosition);
 	UFUNCTION(NetMulticast, unreliable)
-	void Multicast_AlternativeMoveTriggered(FVector NewVector, int64 ParamMoveTimeStamp);
+	void Multicast_AlternativeMoveTriggered();
 	void AlternativeMoveCompleted();
 
 	void Turn(const FInputActionValue& Value);
@@ -180,7 +183,4 @@ protected:
 	void Server_ChangeTeam(ETeam TeamChange);
 	UFUNCTION(NetMulticast, reliable)
 	void Multicast_ChangeTeam(ETeam TeamChange);
-
-	UFUNCTION(Client, reliable)
-	void Client_ClientAdjustPosition(FSavedMovePosition ServerSavedPosition);
 };
