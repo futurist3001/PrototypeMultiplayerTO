@@ -31,18 +31,8 @@ void UTOMainMenuWidget::NativeConstruct()
 
 	if (UTOGameInstance* GameInstance = GetGameInstance<UTOGameInstance>())
 	{
-		CreateServerButton->OnClicked.AddDynamic(this, &UTOMainMenuWidget::SetCreateServerPlayer);
-		CreateServerButton->OnClicked.AddDynamic(GameInstance, &UTOGameInstance::StartCreateServer);
-		JoinServerButton->OnClicked.AddDynamic(GameInstance, &UTOGameInstance::StartJoinServer);
+		CreateServerButton->OnClicked.AddDynamic(GameInstance, &UTOGameInstance::CreateNewServer);
+		JoinServerButton->OnClicked.AddDynamic(GameInstance, &UTOGameInstance::StartJoinServer); // old
 	}
 	QuitGameButton->OnClicked.AddDynamic(this, &UTOMainMenuWidget::QuitGame);
-}
-
-void UTOMainMenuWidget::SetCreateServerPlayer()
-{
-	if (UTOGameInstance* GameInstance = GetGameInstance<UTOGameInstance>();
-			ATOMMPlayerController* TOMMPlayerController = Cast<ATOMMPlayerController>(GetOwningPlayer()))
-	{
-		GameInstance->CreateServerPlayer = TOMMPlayerController;
-	}
 }
