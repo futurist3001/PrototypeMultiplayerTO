@@ -1,6 +1,7 @@
 #include "TowerOffense/Public/MainMenu/TOGameInstance.h"
 
 #include "Engine/World.h"
+#include "Misc/DefaultValueHelper.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSessionSettings.h"
 #include "TowerOffense/Public/MainMenu/ModeControl/TOMMPlayerController.h"
@@ -12,8 +13,12 @@ UTOGameInstance::UTOGameInstance(const FObjectInitializer& ObjectInitializer)
 	ServerConnectedError = false;
 	MaxPlayers = 12;
 	CurrPlayers = 0;
+	MatchStatus = 1; // 0 - Entrace, 1 - Lobby, 2 - PickStage, 3 - Running, 4 - Finished
+	ServerID = 0;
+
 	MapName = "DefaultMapName";
 	ServerName = "DefaultServerName";
+	MatchType = "RegularMatch";
 }
 
 void UTOGameInstance::OnWebSocketConnected()
@@ -38,6 +43,14 @@ void UTOGameInstance::OnWebSocketDisconnectionSuccess(
 
 void UTOGameInstance::OnWebSocketMessageReceived(const FString& Message)
 {
+	TSharedPtr<FJsonObject> json;
+	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Message);
+
+	if (FJsonSerializer::Deserialize(Reader, json))
+	{
+		FString ID = json->GetStringField("Id");
+		ServerID = FCString::Atoi(*ID);
+	}
 }
 
 void UTOGameInstance::ConnectToServer()
@@ -63,8 +76,22 @@ void UTOGameInstance::DisconnectWebSocket()
 	{
 		if (WebSocket->IsConnected())
 		{
+
+			//CloseDedicatedServer();
 			WebSocket->Close();
 		}
+	}
+}
+
+void UTOGameInstance::CloseDedicatedServer() // only from server side
+{
+	if (WebSocket && WebSocket->IsConnected())
+	{
+		FString Request = FString::Printf(
+				TEXT("{\"Action\":\"StopServerByID\",\"ServerID\":\"%d\"}"),
+				ServerID);
+
+		WebSocket->Send(Request);
 	}
 }
 
@@ -73,9 +100,10 @@ void UTOGameInstance::CreateNewServer()
 	if (WebSocket.IsValid() && WebSocket->IsConnected())
 	{
 		FString Request = FString::Printf(
-			TEXT("{ \"Action\": \"ReqestServer\", \"Update\": \"HeartBeat\", \"ServerName\": \"%s\", \"MapName\": \"%s\", \"CurrPlayers\": \"%d\", \"MaxPlayers\": \"%d\"}"),
-			*ServerName, *MapName, CurrPlayers, MaxPlayers);
-		WebSocket->Send(Request);
+				TEXT("{\"Action\":\"ReqestServer\",\"ServerName\":\"%s\"}"),
+				*ServerName);
+
+		WebSocket->Send(Request); // request for creating separate UEServer
 	}
 
 	else
@@ -84,11 +112,30 @@ void UTOGameInstance::CreateNewServer()
 	}
 }
 
+void UTOGameInstance::UpdateUEServer()
+{
+	if (WebSocket.IsValid() && WebSocket->IsConnected())
+	{
+		FString Update = FString::Printf(
+				TEXT("{\"Update\":\"HeartBeat\",\"MatchStatus\":\"%d\",\"MatchType\":\"%s\",\"MapName\":\"%s\",\"CurrPlayers\":\"%d\",\"MaxPlayers\":\"%d\",\"ServerID\":\"%d\"}"),
+				MatchStatus, *MatchType, *MapName, CurrPlayers, MaxPlayers, ServerID);
+
+		WebSocket->Send(Update); // Update info
+	}
+}
+
 void UTOGameInstance::Init()
 {
 	Super::Init();
 
 	ConnectToServer();
+
+	FTimerHandle UpdateTimer;
+	GetWorld()->GetTimerManager().SetTimer(UpdateTimer, this, &ThisClass::UpdateUEServer, 2.f, true, 3.0f);
+
+#if UE_SERVER
+	UE_LOG(LogTemp, Error, TEXT("This is a server build."));
+#endif
 
 	/*if (IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get())
 	{

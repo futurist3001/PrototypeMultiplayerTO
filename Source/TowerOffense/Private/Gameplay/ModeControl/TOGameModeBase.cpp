@@ -67,10 +67,10 @@ void ATOGameModeBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	if (UTOGameInstance* GameInstance = GetGameInstance<UTOGameInstance>()) // delete current session when end play
 	{
-		if (GameInstance->SessionInterface->GetNamedSession("My Session"))
+		/*if (GameInstance->SessionInterface->GetNamedSession("My Session"))
 		{
 			GameInstance->SessionInterface->DestroySession("My Session");
-		}
+		}*/
 	}
 }
 

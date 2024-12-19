@@ -13,10 +13,10 @@ void UTOMainMenuWidget::QuitGame()
 
 	if (UTOGameInstance* GameInstance = GetGameInstance<UTOGameInstance>())
 	{
-		if (GameInstance->SessionInterface->GetNamedSession("My Session"))
+		/*if (GameInstance->SessionInterface->GetNamedSession("My Session"))
 		{
 			GameInstance->SessionInterface->DestroySession("My Session");
-		}
+		}*/
 	}
 }
 
@@ -31,8 +31,11 @@ void UTOMainMenuWidget::NativeConstruct()
 
 	if (UTOGameInstance* GameInstance = GetGameInstance<UTOGameInstance>())
 	{
+		//CreateServerButton->OnClicked.AddDynamic(GameInstance, &UTOGameInstance::ConnectToServer);
 		CreateServerButton->OnClicked.AddDynamic(GameInstance, &UTOGameInstance::CreateNewServer);
 		JoinServerButton->OnClicked.AddDynamic(GameInstance, &UTOGameInstance::StartJoinServer); // old
+		QuitGameButton->OnClicked.AddDynamic(GameInstance, &UTOGameInstance::DisconnectWebSocket);
 	}
+
 	QuitGameButton->OnClicked.AddDynamic(this, &UTOMainMenuWidget::QuitGame);
 }

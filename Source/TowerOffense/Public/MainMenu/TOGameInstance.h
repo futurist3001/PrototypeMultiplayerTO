@@ -23,8 +23,12 @@ public:
 
 	int32 MaxPlayers;
 	int32 CurrPlayers;
+	int32 MatchStatus;
+	int32 ServerID;
+
 	FString ServerName;
 	FString MapName;
+	FString MatchType;
 
 	uint8 ServerConnected : 1;
 	uint8 ServerConnectedError : 1;
@@ -44,11 +48,18 @@ public:
 	UFUNCTION()
 	void OnWebSocketMessageReceived(const FString& Message);
 
+	UFUNCTION()
 	void ConnectToServer();
+
+	UFUNCTION()
 	void DisconnectWebSocket();
+
+	void CloseDedicatedServer();
 
 	UFUNCTION()
 	void CreateNewServer();
+
+	void UpdateUEServer();
 
 	UFUNCTION()
 	void StartCreateServer(); // old
