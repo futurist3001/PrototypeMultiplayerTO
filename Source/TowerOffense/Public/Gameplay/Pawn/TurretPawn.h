@@ -135,6 +135,13 @@ public:
 	void UpdateHealthBarComponent(
 		AActor* HealthKeeper, UTOHealthComponent* ParameterHealthComponent);
 
+	UFUNCTION(Client, Reliable)
+	void Client_GetPlayerTeam();
+	UFUNCTION(Server, Reliable)
+	void Server_ReturnPlayerTeam(ETeam ParamTeam);
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_SetPlayerTeam(ETeam ParamTeam);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;

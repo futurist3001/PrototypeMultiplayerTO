@@ -10,6 +10,7 @@
 #include "TowerOffense/Public/Gameplay/Other/Projectile.h"
 #include "TowerOffense/Public/Gameplay/Other/TOCameraShake.h"
 #include "TowerOffense/Public/Generic/MyBlueprintFunctionLibrary.h"
+#include "TowerOffense/Public/TOGameInstance.h"
 
 ATurretPawn::ATurretPawn(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -124,10 +125,52 @@ void ATurretPawn::SetMeshMaterial(
 	}
 }
 
+void ATurretPawn::Client_GetPlayerTeam_Implementation()
+{
+	if (UTOGameInstance* TOGameInstance = GetGameInstance<UTOGameInstance>();
+		GetLocalRole() == ROLE_AutonomousProxy)
+	{
+		Team = TOGameInstance->PlayerTeam;
+
+		SetMeshMaterial(
+			BaseMesh, BaseMeshMaterialSlotName, BaseMaterialParameterName,
+			UMyBlueprintFunctionLibrary::GetTeamColor(Team), BaseDynamicMaterialInstance);
+
+		SetMeshMaterial(
+			TurretMesh, TurretMeshMaterialSlotName, TurretMaterialParameterName,
+			UMyBlueprintFunctionLibrary::GetTeamColor(Team), TurretDynamicMaterialInstance);
+		
+		Server_ReturnPlayerTeam(Team);
+	}
+}
+
+void ATurretPawn::Server_ReturnPlayerTeam_Implementation(ETeam ParamTeam)
+{
+	Team = ParamTeam;
+
+	Multicast_SetPlayerTeam(Team);
+}
+
+void ATurretPawn::Multicast_SetPlayerTeam_Implementation(ETeam ParamTeam)
+{
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		Team = ParamTeam;
+
+		SetMeshMaterial(
+			BaseMesh, BaseMeshMaterialSlotName, BaseMaterialParameterName,
+			UMyBlueprintFunctionLibrary::GetTeamColor(Team), BaseDynamicMaterialInstance);
+
+		SetMeshMaterial(
+			TurretMesh, TurretMeshMaterialSlotName, TurretMaterialParameterName,
+			UMyBlueprintFunctionLibrary::GetTeamColor(Team), TurretDynamicMaterialInstance);
+	}
+}
+
 void ATurretPawn::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
 	HealthComponent->HealthChanged.AddDynamic(this, &ATurretPawn::HealthCheckedDeath);
 
 	if (UHealthTurretWidget* HealthBarWidget = Cast<UHealthTurretWidget>(HealthWidgetComponent->GetWidget()))
@@ -143,13 +186,16 @@ void ATurretPawn::Tick(float DeltaTime)
 
 	RotationCurrentTime = DeltaTime;
 
-	if (HealthWidgetComponent && GetLocalRole() == ROLE_AutonomousProxy;
-		APlayerController* PlayerContoller = GetWorld()->GetFirstPlayerController<APlayerController>())
+	if (GetLocalRole() != ROLE_Authority)
 	{
-		HealthWidgetComponent->SetWorldRotation(
-			UKismetMathLibrary::FindLookAtRotation(
-				HealthWidgetComponent->GetComponentLocation(),
-				PlayerContoller->PlayerCameraManager->GetCameraLocation()));
+		if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController<APlayerController>();
+		HealthWidgetComponent)
+		{
+			HealthWidgetComponent->SetWorldRotation(
+				UKismetMathLibrary::FindLookAtRotation(
+					HealthWidgetComponent->GetComponentLocation(),
+					PlayerController->PlayerCameraManager->GetCameraLocation()));
+		}
 	}
 }
 

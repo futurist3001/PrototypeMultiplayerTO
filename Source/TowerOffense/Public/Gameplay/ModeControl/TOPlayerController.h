@@ -59,6 +59,8 @@ private:
 	FTimerHandle TimerHandle;
 
 public:
+	ATOPlayerController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
 	UFUNCTION(BlueprintCallable)
 	void SwitchScopeVisibility();
 

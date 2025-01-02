@@ -1,13 +1,15 @@
 #include "TowerOffense/Public/GamePlay/ModeControl/TOGameModeBase.h"
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework\PlayerStart.h"
 #include "TowerOffense/Public/Gameplay/Pawn/TankPawn.h"
 #include "TowerOffense/Public/Gameplay/Pawn/TowerPawn.h"
 #include "TowerOffense/Public/Generic/LevelSystem.h"
 #include "TowerOffense/Public/Generic/UActorMoverComponent.h"
 #include "TowerOffense/Public/Generic/MeshMoverAlongSplineComponent.h"
-#include "TowerOffense/Public/MainMenu/TOGameInstance.h"
+#include "TowerOffense/Public/TOGameInstance.h"
 
 ATOGameModeBase::ATOGameModeBase(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -18,6 +20,8 @@ ATOGameModeBase::ATOGameModeBase(const FObjectInitializer& ObjectInitializer)
 	SecondTeamPlayers = 0;
 	ThirdTeamPlayers = 0;
 	FourthTeamPlayers = 0;
+
+	bIsSetPlayersPosition = false;
 }
 
 void ATOGameModeBase::OpenRelativeLevelCC(int32 LevelIndex) const
@@ -37,18 +41,56 @@ void ATOGameModeBase::BeginPlay()
 		TOGameState->SetGamePhase(EGamePhase::Preparation);
 	}
 
-	ULevelSystem* LevelSystem = GEngine->GetEngineSubsystem<ULevelSystem>();
+	GetWorld()->GetTimerManager().SetTimer(
+		SetPlayersTeamTimer, [this]()
+		{
+			TArray<AActor*> Tanks;
+			UGameplayStatics::GetAllActorsOfClass(this, ATankPawn::StaticClass(), Tanks);
+			for (AActor* Tank : Tanks)
+			{
+				if (ATankPawn* TankPawn = Cast<ATankPawn>(Tank))
+				{
+					TankPawn->Client_GetPlayerTeam();
+				}
+			}
 
-	/*UKismetSystemLibrary::PrintString(this, FString::Printf(
-			TEXT("Current Level: %d"), LevelSystem->ActualCurrentLevel),
-		true, false, FColor::Purple, 4.f);*/
+			if (!bIsSetPlayersPosition)
+			{
+				SetPlayersPosition();
+				bIsSetPlayersPosition = true;
+			}
+		}, 5.f, true, 2.f); // execute when all player`s pawns are constructed (time must be less than time in TOPlayerController (means the last parameter here))
+
+	FTimerHandle InitTimer;
+	GetWorld()->GetTimerManager().SetTimer(
+		InitTimer, [this]()
+		{
+			AlternativeInitPlayData();
+
+			TArray<AActor*> Tanks;
+			UGameplayStatics::GetAllActorsOfClass(this, ATankPawn::StaticClass(), Tanks);
+			for (AActor* Tank : Tanks)
+			{
+				if (ATankPawn* TankPawn = Cast<ATankPawn>(Tank); !TankPawn->OnChangeTeam.IsBound())
+				{
+					TankPawn->OnChangeTeam.AddDynamic(this, &ATOGameModeBase::AlternativeInitPlayData);
+				}
+			}
+		}, 3.0f, false); // this time must be increased if numbers of players increased
 }
 
 void ATOGameModeBase::PostLogin(APlayerController* NewPlayerController)
 {
 	Super::PostLogin(NewPlayerController);
 
-	AlternativeInitPlayData();
+	UE_LOG(LogTemp, Error, TEXT("Players are in a battle."));
+
+	FTimerHandle InitTimer;
+	GetWorld()->GetTimerManager().SetTimer(
+		InitTimer, [this]()
+		{
+			AlternativeInitPlayData();
+		}, 2.0f, false);
 
 	TArray<AActor*> Tanks;
 	UGameplayStatics::GetAllActorsOfClass(this, ATankPawn::StaticClass(), Tanks);
@@ -61,23 +103,49 @@ void ATOGameModeBase::PostLogin(APlayerController* NewPlayerController)
 	}
 }
 
+APlayerController* ATOGameModeBase::Login(
+	UPlayer* NewPlayer, ENetRole InRemoteRole, const FString& Portal,
+	const FString& Options, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
+{
+	APlayerController* PlayerController =
+		Super::Login(NewPlayer, InRemoteRole, Portal, Options, UniqueId, ErrorMessage);
+
+	if (!PlayerController)
+	{
+		ErrorMessage = TEXT("Failed to create PlayerController");
+		return nullptr;
+	}
+
+	return PlayerController;
+}
+
+void ATOGameModeBase::Logout(AController* Exiting)
+{
+	Super::Logout(Exiting);
+
+	TArray<AActor*> Tanks;
+	UGameplayStatics::GetAllActorsOfClass(this, ATankPawn::StaticClass(), Tanks);
+	TotalPlayerNumbers = Tanks.Num();
+
+	if (UTOGameInstance* TOGameInstance = GetGameInstance<UTOGameInstance>(); TotalPlayerNumbers <= 0)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(SetPlayersTeamTimer);
+
+		TOGameInstance->CloseDedicatedServer();
+	}
+}
+
 void ATOGameModeBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 
-	if (UTOGameInstance* GameInstance = GetGameInstance<UTOGameInstance>()) // delete current session when end play
-	{
-		/*if (GameInstance->SessionInterface->GetNamedSession("My Session"))
-		{
-			GameInstance->SessionInterface->DestroySession("My Session");
-		}*/
-	}
 }
 
 void ATOGameModeBase::AlternativeInitPlayData()
 {
 	TArray<AActor*> Tanks;
 	UGameplayStatics::GetAllActorsOfClass(this, ATankPawn::StaticClass(), Tanks);
+	TotalPlayerNumbers = Tanks.Num();
 
 	FirstTeamPlayers = 0;
 	SecondTeamPlayers = 0;
@@ -222,23 +290,74 @@ void ATOGameModeBase::AlternativeWinCase()
 			ThirdTeamPlayers <= 0 && FourthTeamPlayers <= 0)
 	{
 		SetEndGameState(EGamePhase::FirstTeamWin);
+		DeactivateTowers();
 	}
 
 	else if (SecondTeamPlayers >= 1 && FirstTeamPlayers <= 0 &&
 			ThirdTeamPlayers <= 0 && FourthTeamPlayers <= 0)
 	{
 		SetEndGameState(EGamePhase::SecondTeamWin);
+		DeactivateTowers();
 	}
 
 	else if (ThirdTeamPlayers >= 1 && FirstTeamPlayers <= 0 &&
 			SecondTeamPlayers <= 0 && FourthTeamPlayers <= 0)
 	{
 		SetEndGameState(EGamePhase::ThirdTeamWin);
+		DeactivateTowers();
 	}
 
 	else if (FourthTeamPlayers >= 1 && FirstTeamPlayers <= 0 &&
 			SecondTeamPlayers <= 0 && ThirdTeamPlayers <= 0)
 	{
 		SetEndGameState(EGamePhase::FourthTeamWin);
+		DeactivateTowers();
+	}
+}
+
+void ATOGameModeBase::DeactivateTowers()
+{
+	TArray<AActor*> Towers;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATowerPawn::StaticClass(), Towers);
+
+	for (AActor* Tower : Towers)
+	{
+		ATowerPawn* TowerPawn = Cast<ATowerPawn>(Tower);
+		TowerPawn->SetPlayState(false);
+	}
+}
+
+void ATOGameModeBase::SetPlayersPosition()
+{
+	TArray<AActor*> Tanks;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATankPawn::StaticClass(), Tanks);
+
+	for (AActor* Tank : Tanks)
+	{
+		if (ATankPawn* TankPawn = Cast<ATankPawn>(Tank))
+		{
+			TArray<AActor*> PlayerStarts;
+			UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), PlayerStarts);
+
+			for (AActor* PlayerSart : PlayerStarts)
+			{
+				if (APlayerStart* PlayerStartPos = Cast<APlayerStart>(PlayerSart))
+				{
+					if ((TankPawn->Team == ETeam::Team1 && PlayerStartPos->PlayerStartTag == FName("Team1")) ||
+						(TankPawn->Team == ETeam::Team2 && PlayerStartPos->PlayerStartTag == FName("Team2")) ||
+						(TankPawn->Team == ETeam::Team3 && PlayerStartPos->PlayerStartTag == FName("Team3")) ||
+						(TankPawn->Team == ETeam::Team4 && PlayerStartPos->PlayerStartTag == FName("Team4")))
+					{
+						TankPawn->CapsuleComponent->SetPhysicsLinearVelocity(FVector::ZeroVector);
+						TankPawn->CapsuleComponent->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+						TankPawn->CapsuleComponent->SetSimulatePhysics(false);
+						TankPawn->SetActorLocation(PlayerStartPos->GetActorLocation(), false, nullptr, ETeleportType::TeleportPhysics);
+						TankPawn->CapsuleComponent->SetSimulatePhysics(true);
+						PlayerStartPos->Destroy();
+						break;
+					}
+				}
+			}
+		}
 	}
 }

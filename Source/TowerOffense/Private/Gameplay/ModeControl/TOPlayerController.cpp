@@ -10,6 +10,11 @@
 #include "TowerOffense/Public/Gameplay/UI/TOWinLoseWidget.h"
 #include "TowerOffense/Public/Generic/LevelSystem.h"
 
+ATOPlayerController::ATOPlayerController(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+}
+
 void ATOPlayerController::SwitchScopeVisibility()
 {
 	const ESlateVisibility Visibility = ScopeWidget->GetVisibility() != ESlateVisibility::Visible
@@ -42,10 +47,15 @@ void ATOPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (ATankPawn* TankPawn = Cast<ATankPawn>(GetPawn()))
-	{
-		PlayerTeam = TankPawn->Execute_GetTeam(TankPawn);
-	}
+	FTimerHandle SetTeamTimer;
+	GetWorld()->GetTimerManager().SetTimer(
+		SetTeamTimer, [this]()
+		{
+			if (ATankPawn* TankPawn = Cast<ATankPawn>(GetPawn()))
+			{
+				PlayerTeam = TankPawn->Execute_GetTeam(TankPawn);
+			}
+		}, 3.f, false); // must be agreed with ATOGameModeBase (all pawns must be constructed, all client/server tanks must have actual info about own team)
 
 	if (GameBackMusic)
 	{

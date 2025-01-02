@@ -28,11 +28,15 @@ void ATOMMPlayerController::LimitPlayerMovement()
 }
 
 void ATOMMPlayerController::CreateMainMenuWidget()
-{
-	if (MainMenuWidgetClass && GetLocalRole() != ROLE_Authority)
+{	
+	if (MainMenuWidgetClass)
 	{
 		MainMenuWidget = CreateWidget<UTOMainMenuWidget>(this, MainMenuWidgetClass);
-		MainMenuWidget->AddToViewport();
-		MainMenuWidget->SetVisibility(ESlateVisibility::Visible);
+
+		if (MainMenuWidget)
+		{
+			MainMenuWidget->AddToViewport();
+			MainMenuWidget->SetVisibility(ESlateVisibility::Visible);
+		}
 	}
 }

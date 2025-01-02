@@ -32,7 +32,11 @@ private:
 	int32 SecondTeamPlayers;
 	int32 ThirdTeamPlayers;
 	int32 FourthTeamPlayers;
+	int32 TotalPlayerNumbers;
 	uint8 bIsGameStarted : 1;
+	uint8 bIsSetPlayersPosition : 1;
+
+	FTimerHandle SetPlayersTeamTimer;
 
 public:
 	ATOGameModeBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -45,6 +49,10 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void PostLogin(APlayerController* NewPlayerController) override;
+	virtual APlayerController* Login(
+		UPlayer* NewPlayer, ENetRole InRemoteRole, const FString& Portal,
+		const FString& Options, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage) override;
+	virtual void Logout(AController* Exiting) override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UFUNCTION()
@@ -56,4 +64,7 @@ private:
 	UFUNCTION()
 	void AlternativeTankDestroyed(AActor* DestroyedActor);
 	void AlternativeWinCase();
+	void DeactivateTowers();
+
+	void SetPlayersPosition();
 };

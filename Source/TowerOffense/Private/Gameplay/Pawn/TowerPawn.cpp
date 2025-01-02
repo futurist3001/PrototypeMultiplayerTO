@@ -40,32 +40,35 @@ void ATowerPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (!bPlayedTurretRotationSoundIteration && bIsRotate)
+	if (GetLocalRole() != ROLE_Authority)
 	{
-		// Play Sound
-
-		if (TurretRotationSound)
+		if (!bPlayedTurretRotationSoundIteration && bIsRotate)
 		{
-			TurretRotationAudioComponent = UGameplayStatics::CreateSound2D(GetWorld(), TurretRotationSound);
-			if (TurretRotationAudioComponent)
+			// Play Sound
+
+			if (TurretRotationSound)
 			{
-				TurretRotationAudioComponent->Play();
+				TurretRotationAudioComponent = UGameplayStatics::CreateSound2D(GetWorld(), TurretRotationSound);
+				if (TurretRotationAudioComponent)
+				{
+					TurretRotationAudioComponent->Play();
+				}
+
+				bPlayedTurretRotationSoundIteration = true;
 			}
-
-			bPlayedTurretRotationSoundIteration = true;
 		}
-	}
 
-	else if (bPlayedTurretRotationSoundIteration && !bIsRotate)
-	{
-		// Stop and delete sound
-
-		if (TurretRotationSound && TurretRotationAudioComponent && TurretRotationAudioComponent->IsValidLowLevel())
+		else if (bPlayedTurretRotationSoundIteration && !bIsRotate)
 		{
-			TurretRotationAudioComponent->Stop();
-			TurretRotationAudioComponent->DestroyComponent();
+			// Stop and delete sound
 
-			bPlayedTurretRotationSoundIteration = false;
+			if (TurretRotationSound && TurretRotationAudioComponent && TurretRotationAudioComponent->IsValidLowLevel())
+			{
+				TurretRotationAudioComponent->Stop();
+				TurretRotationAudioComponent->DestroyComponent();
+
+				bPlayedTurretRotationSoundIteration = false;
+			}
 		}
 	}
 }
