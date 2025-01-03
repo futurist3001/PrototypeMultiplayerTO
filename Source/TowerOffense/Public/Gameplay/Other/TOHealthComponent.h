@@ -17,7 +17,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 	float DefaultHealth;
 
-	UPROPERTY(ReplicatedUsing = OnRep_HealthChanged, BlueprintReadOnly)
+	UPROPERTY(ReplicatedUsing = OnRep_HealthChanged, BlueprintReadWrite)
 	float Health;
 
 	UPROPERTY(BlueprintAssignable)

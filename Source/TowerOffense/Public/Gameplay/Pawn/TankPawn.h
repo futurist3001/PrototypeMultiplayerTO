@@ -29,6 +29,12 @@ public:
 	UPROPERTY()
 	TObjectPtr<UMyPrediction> MyPrediction;
 
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float Speed;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Fire")
+	float CurrentEnergy;
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<USpringArmComponent> SpringArmComponent;
@@ -57,14 +63,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	float AccelerationDuration;
 
-	UPROPERTY(EditAnywhere, Category = "Movement")
-	float Speed;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Fire")
 	float MaxEnergy;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Fire")
-	float CurrentEnergy;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fire")
 	float OldShootTime; // After this time the last shoot is considered as old shoot
@@ -164,9 +164,9 @@ protected:
 	void AlternativeMoveCompleted();
 
 	void Turn(const FInputActionValue& Value);
-	UFUNCTION(Server, unreliable)
+	UFUNCTION(Server, reliable)
 	void Server_SetActorRotation(float ServerYawTurnRotator);
-	UFUNCTION(NetMulticast, unreliable)
+	UFUNCTION(NetMulticast, reliable)
 	void Multicast_SetActorRotation(float MultiYawTurnRotator);
 
 	void Rotate(const FInputActionValue& Value);

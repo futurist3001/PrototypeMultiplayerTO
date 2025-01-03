@@ -352,6 +352,7 @@ void ATOGameModeBase::SetPlayersPosition()
 						TankPawn->CapsuleComponent->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
 						TankPawn->CapsuleComponent->SetSimulatePhysics(false);
 						TankPawn->SetActorLocation(PlayerStartPos->GetActorLocation(), false, nullptr, ETeleportType::TeleportPhysics);
+						TankPawn->SetActorRotation(PlayerStartPos->GetActorRotation(), ETeleportType::TeleportPhysics);
 						TankPawn->CapsuleComponent->SetSimulatePhysics(true);
 						PlayerStartPos->Destroy();
 						break;

@@ -18,6 +18,9 @@ class TOWEROFFENSE_API ATOPlayerController : public APlayerController
 	GENERATED_BODY()
 	
 public:
+	UPROPERTY(Transient, BlueprintReadWrite, Category = "UI")
+	TObjectPtr<UTOHUDWidget> HUDWidget;
+
 	float HandleTime; // For delay preparation
 	ETeam PlayerTeam;
 
@@ -47,9 +50,6 @@ protected:
 	TObjectPtr<UTOPreparationWidget> PreparationWidget;
 
 	UPROPERTY(Transient, BlueprintReadWrite, Category = "UI")
-	TObjectPtr<UTOHUDWidget> HUDWidget;
-
-	UPROPERTY(Transient, BlueprintReadWrite, Category = "UI")
 	TObjectPtr<UUserWidget> YouAreDeadWidget;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX")
@@ -70,6 +70,12 @@ public:
 	UFUNCTION()
 	void ReturnToMainMenu();
 
+	UFUNCTION()
+	void UpdateHUDHealth(
+		AActor* HealthKeeper, UTOHealthComponent* ParameterHealthComponent);
+
+	void UpdateHUDEnergy();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -80,11 +86,6 @@ protected:
 	void DestroyPreparationWidget();
 
 	void CreateHUDWidget();
-	void UpdateHUDEnergy();
-
-	UFUNCTION()
-	void UpdateHUDHealth(
-		AActor* HealthKeeper, UTOHealthComponent* ParameterHealthComponent);
 
 private:
 	UFUNCTION(Server, reliable)
