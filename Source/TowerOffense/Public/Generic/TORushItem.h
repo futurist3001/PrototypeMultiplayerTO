@@ -18,6 +18,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Speed")
 	float TimeResetSpeed;
 
+private:
+	uint8 bIsUnderRush : 1;
+
 public:
 	ATORushItem(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 

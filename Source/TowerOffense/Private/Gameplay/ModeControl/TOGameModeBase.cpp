@@ -53,13 +53,14 @@ void ATOGameModeBase::BeginPlay()
 					TankPawn->Client_GetPlayerTeam();
 				}
 			}
+		}, 5.f, true, 1.f); // execute when all player`s pawns are constructed (time must be less than time in TOPlayerController (means the last parameter here))
 
-			if (!bIsSetPlayersPosition)
-			{
-				SetPlayersPosition();
-				bIsSetPlayersPosition = true;
-			}
-		}, 5.f, true, 2.f); // execute when all player`s pawns are constructed (time must be less than time in TOPlayerController (means the last parameter here))
+	FTimerHandle SetProperStartPosTimer;
+	GetWorld()->GetTimerManager().SetTimer(
+		SetProperStartPosTimer, [this]()
+		{
+			SetPlayersPosition();
+		}, 2.5f, false); // must execute after all server tanks will get proper team value (previous timer)
 
 	FTimerHandle InitTimer;
 	GetWorld()->GetTimerManager().SetTimer(
@@ -132,6 +133,13 @@ void ATOGameModeBase::Logout(AController* Exiting)
 		GetWorld()->GetTimerManager().ClearTimer(SetPlayersTeamTimer);
 
 		TOGameInstance->CloseDedicatedServer();
+
+		FTimerHandle LastCloseServerTimer;
+		GetWorld()->GetTimerManager().SetTimer(
+			LastCloseServerTimer, []()
+			{
+				FGenericPlatformMisc::RequestExit(false);
+			}, 2.0f, false);
 	}
 }
 
@@ -241,7 +249,7 @@ void ATOGameModeBase::SetEndGameState(EGamePhase Phase)
 	{
 		TOGameState->SetGamePhase(Phase);
 
-		if (Phase != EGamePhase::Preparation || Phase != EGamePhase::Playing)
+		if ((Phase != EGamePhase::Preparation) || (Phase != EGamePhase::Playing))
 		{
 			TOGameState->OnGamePhaseChanged.Broadcast(Phase); // Broadcast on server side for correct pause game at the end
 		}

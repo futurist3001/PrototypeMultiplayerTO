@@ -16,17 +16,24 @@ void ATOOverchargeItem::SpecialBonus(AActor* Actor)
 	if (Actor->IsValidLowLevel(); ATankPawn * TankPawn = Cast<ATankPawn>(Actor))
 	{
 		float StartEnergyCount = TankPawn->GetCurrentEnergy();
-		TankPawn->CurrentEnergy = BonusEnergy;
 
-		FTimerHandle EndOverchargeTimer;
-		GetWorld()->GetTimerManager().SetTimer(
-			EndOverchargeTimer, [TankPawn, StartEnergyCount]()
-			{
-				TankPawn->CurrentEnergy = StartEnergyCount;
-				if (ATOPlayerController* TOPlayerController = Cast<ATOPlayerController>(TankPawn))
+		if (StartEnergyCount < BonusEnergy)
+		{
+			TankPawn->CurrentEnergy = BonusEnergy;
+
+			FTimerHandle EndOverchargeTimer;
+			GetWorld()->GetTimerManager().SetTimer(
+				EndOverchargeTimer, [TankPawn, StartEnergyCount]()
 				{
-					TOPlayerController->UpdateHUDEnergy();
-				}
-			}, TimeOverChargeEnd, false);
+					TankPawn->CurrentEnergy = StartEnergyCount;
+					if (ATOPlayerController* TOPlayerController = Cast<ATOPlayerController>(TankPawn))
+					{
+						if (TOPlayerController->HUDWidget)
+						{
+							TOPlayerController->UpdateHUDEnergy();
+						}
+					}
+				}, TimeOverChargeEnd, false);
+		}
 	}
 }

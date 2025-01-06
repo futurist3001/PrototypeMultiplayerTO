@@ -146,6 +146,13 @@ void ALobbyGameModeBase::Logout(AController* Exiting)
 		if (TOGameInstance->CurrPlayers <= 0)
 		{
 			TOGameInstance->CloseDedicatedServer();
+
+			FTimerHandle LastCloseServerTimer;
+			GetWorld()->GetTimerManager().SetTimer(
+				LastCloseServerTimer, []()
+				{
+					FGenericPlatformMisc::RequestExit(false);
+				}, 2.0f, false);
 		}
 	}
 }

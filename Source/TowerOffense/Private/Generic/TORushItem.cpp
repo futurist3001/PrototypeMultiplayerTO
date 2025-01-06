@@ -8,20 +8,28 @@ ATORushItem::ATORushItem(const FObjectInitializer& ObjectInitializer)
 
 	BonusSpeed = 10.f;
 	TimeResetSpeed = 10.f;
+
+	bIsUnderRush = false;
 }
 
 void ATORushItem::SpecialBonus(AActor* Actor)
 {
 	if (Actor->IsValidLowLevel(); ATankPawn* TankPawn = Cast<ATankPawn>(Actor))
 	{
-		float DefaultSpeed = TankPawn->Speed;
-		TankPawn->Speed += BonusSpeed;
+		if (!bIsUnderRush)
+		{
+			bIsUnderRush = true;
 
-		FTimerHandle ResetSpeedTimer;
-		GetWorld()->GetTimerManager().SetTimer(
-			ResetSpeedTimer, [TankPawn, DefaultSpeed]()
-			{
-				TankPawn->Speed = DefaultSpeed;
-			}, TimeResetSpeed, false);
+			float DefaultSpeed = TankPawn->Speed;
+			TankPawn->Speed += BonusSpeed;
+
+			FTimerHandle ResetSpeedTimer;
+			GetWorld()->GetTimerManager().SetTimer(
+				ResetSpeedTimer, [this, TankPawn, DefaultSpeed]()
+				{
+					TankPawn->Speed = DefaultSpeed;
+					bIsUnderRush = false;
+				}, TimeResetSpeed, false);
+		}
 	}
 }

@@ -224,8 +224,6 @@ void UTOGameInstance::GetServerInfoByPort(int32 port)
 			TEXT("{\"Action\":\"ReqestServerInfoByPort\",\"ServerPort\":\"%d\"}"),
 			port);
 
-		UE_LOG(LogTemp, Error, TEXT("Port: %d"), port);
-
 		WebSocket->Send(Request);
 	}
 }

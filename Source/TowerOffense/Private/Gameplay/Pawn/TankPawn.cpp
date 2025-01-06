@@ -77,7 +77,9 @@ void ATankPawn::AlternativeMoveTriggered(const FInputActionValue& Value)
 {
 	MovementVector = Value.Get<FVector>();
 
-	if (MoveTimeStamp >= 20)
+	AddActorLocalOffset(MovementVector * Speed, true, nullptr);
+
+	if (MoveTimeStamp >= INT64_MAX - 1)
 	{
 		MoveTimeStamp = -1;
 	}
@@ -87,21 +89,16 @@ void ATankPawn::AlternativeMoveTriggered(const FInputActionValue& Value)
 	if (GetLocalRole() == ROLE_AutonomousProxy)
 	{
 		Server_AlternativeMoveTriggered(MovementVector, MoveTimeStamp);
+
+		if (MyPrediction->IsValidLowLevel())
+		{
+			MyPrediction->SaveClientPredictedPosition(GetActorLocation(), MoveTimeStamp);
+		}
 	}
 
 	else
 	{
 		Multicast_AlternativeMoveTriggered();
-	}
-
-	AddActorLocalOffset(MovementVector * Speed, true, nullptr);
-
-	if (GetLocalRole() == ROLE_AutonomousProxy)
-	{
-		if (MyPrediction->IsValidLowLevel())
-		{
-			MyPrediction->SaveClientPredictedPosition(GetActorLocation(), MoveTimeStamp);
-		}
 	}
 
 	if (MovementEffect)
@@ -204,14 +201,6 @@ void ATankPawn::Server_SetActorRotation_Implementation(float ServerYawTurnRotato
 
 	TurretMesh->AddLocalRotation(FRotator(0.f, -ServerYawTurnRotator, 0.f), false, nullptr);
 	TargetAngle.Yaw -= ServerYawTurnRotator;
-
-	if (MovementEffect)
-	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			GetWorld(), MovementEffect, RightTankTrackRotation->GetComponentLocation());
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			GetWorld(), MovementEffect, LeftTankTrackRotation->GetComponentLocation());
-	}
 }
 
 void ATankPawn::Multicast_SetActorRotation_Implementation(float MultiServerYawTurnRotator)

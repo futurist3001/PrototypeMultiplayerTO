@@ -29,7 +29,10 @@ void ATOHealthItem::SpecialBonus(AActor* Actor)
 		{
 			if (ATOPlayerController* TOPlayerController = Cast<ATOPlayerController>(TankPawn->GetController()))
 			{
-				TOPlayerController->HUDWidget->SetHealth(TankPawn->HealthComponent->Health, TankPawn->HealthComponent->DefaultHealth);
+				if (TOPlayerController->HUDWidget)
+				{
+					TOPlayerController->HUDWidget->SetHealth(TankPawn->HealthComponent->Health, TankPawn->HealthComponent->DefaultHealth);
+				}
 				TankPawn->UpdateHealthBarComponent(TankPawn, TankPawn->HealthComponent);
 			}
 		}
